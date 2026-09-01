@@ -96,14 +96,14 @@ export function CosmicChart({ className = "" }: { className?: string }) {
           transition={{ duration: p.duration, repeat: Infinity, ease: "linear" }}
         >
           <div
-            className="absolute left-1/2 top-1/2 rounded-full"
+            className="absolute top-1/2 -translate-y-1/2 rounded-full"
             style={{
+              left: `${((240 + p.r) / 480) * 100}%`,
               width: p.size,
               height: p.size,
+              marginLeft: -p.size / 2,
               background: p.color,
               boxShadow: `0 0 14px 2px ${p.color}`,
-              transform: `translate(-50%,-50%) translateX(${(p.r / 240) * 50}%)`,
-              marginLeft: `${p.r * 0.208}%`,
             }}
           />
         </motion.div>
