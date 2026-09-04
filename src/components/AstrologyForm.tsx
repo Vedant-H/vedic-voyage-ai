@@ -7,6 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { INTEREST_OPTIONS, type BirthDetails } from "@/types/astrology";
 
+type FormErrors = {
+  dateOfBirth?: string;
+  timeOfBirth?: string;
+  birthCity?: string;
+  birthCountry?: string;
+  interests?: string;
+};
+
 const STEPS = ["Personal details", "Birth details", "Your focus"];
 
 interface Props {
@@ -16,7 +24,7 @@ interface Props {
 
 export function AstrologyForm({ onSubmit, submitting = false }: Props) {
   const [step, setStep] = useState(0);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<FormErrors>({});
   const [form, setForm] = useState<BirthDetails>({
     name: "",
     dateOfBirth: "",
@@ -33,7 +41,7 @@ export function AstrologyForm({ onSubmit, submitting = false }: Props) {
     setForm((prev) => ({ ...prev, [key]: value }));
 
   function validate(current: number) {
-    const next: Record<string, string> = {};
+    const next: FormErrors = {};
     if (current === 0 && !form.dateOfBirth) next.dateOfBirth = "Please enter your date of birth.";
     if (current === 1) {
       if (!form.timeOfBirth) next.timeOfBirth = "Please enter your time of birth.";
@@ -249,8 +257,8 @@ function Field({
 }: {
   label: string;
   id: string;
-  hint?: string;
-  error?: string;
+  hint?: string | undefined;
+  error?: string | undefined;
   children: React.ReactNode;
 }) {
   return (
