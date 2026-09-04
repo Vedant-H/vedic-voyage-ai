@@ -167,6 +167,12 @@
     radial-gradient(1px 1px at 65% 88%, oklch(1 0 0 / 40%), transparent);
 }
 
+@utility cosmic-bg {
+  background-image: var(--gradient-cosmic);
+}
+
+
+
 @media print {
   body {
     background: white !important;

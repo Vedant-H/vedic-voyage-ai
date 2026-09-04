@@ -7,7 +7,7 @@ const planets = [
   { r: 198, size: 4, duration: 68, color: "oklch(0.8 0.08 220)" },
 ];
 
-const constellation = [
+const constellation: Array<[number, number]> = [
   [30, 46],
   [72, 28],
   [118, 58],
