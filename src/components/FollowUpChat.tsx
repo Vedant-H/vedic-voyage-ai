@@ -1,11 +1,11 @@
+"use client";
+
 import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Loader2, MessageCircle, Send } from "lucide-react";
-import { useServerFn } from "@tanstack/react-start";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { askGuide } from "@/lib/reading.functions";
 
 interface Message {
   role: "user" | "assistant";
@@ -19,7 +19,6 @@ const SUGGESTIONS = [
 ];
 
 export function FollowUpChat({ context }: { context: string }) {
-  const ask = useServerFn(askGuide);
   const [messages, setMessages] = useState<Message[]>([]);
   const [value, setValue] = useState("");
   const [busy, setBusy] = useState(false);
@@ -35,8 +34,16 @@ export function FollowUpChat({ context }: { context: string }) {
     setMessages((m) => [...m, { role: "user", content: trimmed }]);
     setBusy(true);
     try {
-      const res = await ask({ data: { question: trimmed, context, history } });
-      setMessages((m) => [...m, { role: "assistant", content: res.answer }]);
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: trimmed, context, history }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to get answer");
+      }
+      setMessages((m) => [...m, { role: "assistant", content: data.answer }]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
@@ -98,35 +105,40 @@ export function FollowUpChat({ context }: { context: string }) {
         </AnimatePresence>
         {busy && (
           <p className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="size-4 animate-spin" aria-hidden="true" /> Consulting your chart…
+            <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+            The AI astrologer is reflecting on your question…
+          </p>
+        )}
+        {error && (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
           </p>
         )}
         <div ref={endRef} />
       </div>
 
-      {error && (
-        <p role="alert" className="mt-4 text-sm text-destructive">
-          {error}
-        </p>
-      )}
-
       <form
-        className="mt-6 flex gap-2"
         onSubmit={(e) => {
           e.preventDefault();
           send(value);
         }}
+        className="mt-6 flex gap-2"
       >
         <Input
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder="Ask a question about your reading…"
-          aria-label="Your question"
-          maxLength={600}
+          disabled={busy}
+          className="flex-1"
+          maxLength={400}
         />
         <Button type="submit" disabled={busy || value.trim().length < 2}>
-          <Send className="size-4" aria-hidden="true" />
-          <span className="sr-only">Send</span>
+          {busy ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <Send className="size-4" />
+          )}
+          <span className="sr-only">Send question</span>
         </Button>
       </form>
     </section>

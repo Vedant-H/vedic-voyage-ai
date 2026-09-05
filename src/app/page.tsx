@@ -1,6 +1,7 @@
+"use client";
+
 import { useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
+import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { Moon, Orbit, ShieldCheck, Sparkles, Stars, Wand2 } from "lucide-react";
 
@@ -8,27 +9,8 @@ import { AstrologyForm } from "@/components/AstrologyForm";
 import { CosmicChart } from "@/components/CosmicChart";
 import { LoadingAnalysis } from "@/components/LoadingAnalysis";
 import { Button } from "@/components/ui/button";
-import { generateReading } from "@/lib/reading.functions";
 import { saveReading } from "@/lib/reading-store";
 import { DISCLAIMER, type BirthDetails } from "@/types/astrology";
-
-const TITLE = "CosmicLens AI — Personalised Vedic Astrology Readings";
-const DESCRIPTION =
-  "Enter your birth details and receive a detailed AI-generated Vedic astrology reading covering personality, career, relationships, finances and spiritual growth.";
-
-export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: TITLE },
-      { name: "description", content: DESCRIPTION },
-      { property: "og:title", content: TITLE },
-      { property: "og:description", content: DESCRIPTION },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
-  component: Index,
-});
 
 const FEATURES = [
   {
@@ -48,9 +30,8 @@ const FEATURES = [
   },
 ];
 
-function Index() {
-  const navigate = useNavigate();
-  const generate = useServerFn(generateReading);
+export default function HomePage() {
+  const router = useRouter();
   const [status, setStatus] = useState<"idle" | "loading">("idle");
   const [error, setError] = useState("");
 
@@ -58,9 +39,19 @@ function Index() {
     setError("");
     setStatus("loading");
     try {
-      const result = await generate({ data: birth });
-      saveReading({ birth, ...result });
-      navigate({ to: "/reading" });
+      const res = await fetch("/api/reading", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(birth),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to generate reading");
+      }
+
+      saveReading({ birth, ...data });
+      router.push("/reading");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
       setStatus("idle");

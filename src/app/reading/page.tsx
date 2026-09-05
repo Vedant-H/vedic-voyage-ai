@@ -1,5 +1,7 @@
+"use client";
+
 import { useEffect, useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useRouter } from "next/navigation";
 import {
   Briefcase,
   Coins,
@@ -19,27 +21,8 @@ import { Button } from "@/components/ui/button";
 import { buildChatContext, clearReading, loadReading } from "@/lib/reading-store";
 import type { StoredReading } from "@/types/astrology";
 
-const TITLE = "Your Vedic Astrology Reading — CosmicLens AI";
-const DESCRIPTION =
-  "Explore your personalised AI Vedic astrology reading: planetary influences, life areas, guidance and follow-up questions.";
-
-export const Route = createFileRoute("/reading")({
-  head: () => ({
-    meta: [
-      { title: TITLE },
-      { name: "description", content: DESCRIPTION },
-      { property: "og:title", content: TITLE },
-      { property: "og:description", content: DESCRIPTION },
-      { property: "og:type", content: "article" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { name: "robots", content: "noindex" },
-    ],
-  }),
-  component: ReadingPage,
-});
-
-function ReadingPage() {
-  const navigate = useNavigate();
+export default function ReadingPage() {
+  const router = useRouter();
   const [stored, setStored] = useState<StoredReading | null>(null);
   const [ready, setReady] = useState(false);
 
@@ -58,7 +41,7 @@ function ReadingPage() {
           <p className="mt-3 text-sm text-muted-foreground">
             Your reading is kept only in this browser session. Please generate a new one.
           </p>
-          <Button className="mt-6" onClick={() => navigate({ to: "/" })}>
+          <Button className="mt-6" onClick={() => router.push("/")}>
             <Sparkles className="size-4" aria-hidden="true" /> Start a new reading
           </Button>
         </div>
@@ -85,7 +68,7 @@ function ReadingPage() {
             stored={stored}
             onRestart={() => {
               clearReading();
-              navigate({ to: "/" });
+              router.push("/");
             }}
           />
 

@@ -1,3 +1,5 @@
+"use client";
+
 import { motion } from "motion/react";
 import { Download, RotateCcw, Sparkles } from "lucide-react";
 
