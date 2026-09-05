@@ -17,11 +17,12 @@ export function PlanetCard({ insight, index }: { insight: PlanetaryInsight; inde
         aria-hidden="true"
       />
       <div
-        className="flex size-12 items-center justify-center rounded-full border border-border bg-secondary/50 font-display text-2xl text-[var(--gold)]"
+        className="flex size-12 items-center justify-center overflow-hidden rounded-full border border-border bg-secondary/50 font-display text-2xl text-[var(--gold)]"
         aria-hidden="true"
       >
-        {insight.symbol || "✷"}
+        {[...(insight.symbol ?? "")].length <= 2 && insight.symbol ? insight.symbol : "✷"}
       </div>
+
       <h4 className="mt-4 font-display text-xl">{insight.planet}</h4>
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{insight.interpretation}</p>
     </motion.article>
