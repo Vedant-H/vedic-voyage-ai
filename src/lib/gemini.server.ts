@@ -1,4 +1,5 @@
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models";
 
 export interface GatewayMessage {
   role: "system" | "user" | "assistant";
@@ -17,23 +18,52 @@ export class AiError extends Error {
  * Calls the Gemini model through the secure server-side AI gateway.
  * The API key is read at call time and never leaves the server.
  */
-export async function callGemini(messages: GatewayMessage[], maxTokens = 8000): Promise<string> {
-  const apiKey = process.env["LOVABLE_API_KEY"] ?? process.env["GEMINI_API_KEY"];
+export async function callGemini(messages: GatewayMessage[], maxTokens = 12000): Promise<string> {
+  const lovableApiKey = process.env["LOVABLE_API_KEY"];
+  const geminiApiKey = process.env["GEMINI_API_KEY"];
+  const apiKey = lovableApiKey ?? geminiApiKey;
   if (!apiKey) {
     throw new AiError("The astrology engine is not configured yet. Please try again later.", 500);
   }
-  const model = process.env["GEMINI_MODEL"] || "google/gemini-3.6-flash";
+  const model = process.env["GEMINI_MODEL"] || "gemini-2.5-flash";
 
   let res: Response;
   try {
-    res = await fetch(GATEWAY_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({ model, messages, max_tokens: maxTokens }),
-    });
+    if (lovableApiKey) {
+      res = await fetch(GATEWAY_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${lovableApiKey}`,
+        },
+        body: JSON.stringify({ model, messages, max_tokens: maxTokens }),
+        signal: AbortSignal.timeout(90000),
+      });
+    } else {
+      const systemMessages = messages.filter((message) => message.role === "system");
+      const contents = messages
+        .filter((message) => message.role !== "system")
+        .map((message) => ({
+          role: message.role === "assistant" ? "model" : "user",
+          parts: [{ text: message.content }],
+        }));
+
+      res = await fetch(`${GEMINI_API_URL}/${model}:generateContent?key=${geminiApiKey}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: systemMessages.length
+            ? { parts: [{ text: systemMessages.map((message) => message.content).join("\n\n") }] }
+            : undefined,
+          contents,
+          generationConfig: {
+            maxOutputTokens: maxTokens,
+            responseMimeType: "application/json",
+          },
+        }),
+        signal: AbortSignal.timeout(90000),
+      });
+    }
   } catch {
     throw new AiError("We couldn't reach the astrology engine. Please try again.", 503);
   }
@@ -53,8 +83,14 @@ export async function callGemini(messages: GatewayMessage[], maxTokens = 8000): 
 
   const data = (await res.json()) as {
     choices?: Array<{ message?: { content?: string } }>;
+    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
   };
-  const text = data.choices?.[0]?.message?.content?.trim();
+  const text =
+    data.choices?.[0]?.message?.content?.trim() ??
+    data.candidates?.[0]?.content?.parts
+      ?.map((part) => part.text ?? "")
+      .join("")
+      .trim();
   if (!text) {
     throw new AiError("The reading came back empty. Please try again.", 502);
   }

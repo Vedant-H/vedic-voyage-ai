@@ -1,11 +1,9 @@
 import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Loader2, MessageCircle, Send } from "lucide-react";
-import { useServerFn } from "@tanstack/react-start";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { askGuide } from "@/lib/reading.functions";
 
 interface Message {
   role: "user" | "assistant";
@@ -19,7 +17,6 @@ const SUGGESTIONS = [
 ];
 
 export function FollowUpChat({ context }: { context: string }) {
-  const ask = useServerFn(askGuide);
   const [messages, setMessages] = useState<Message[]>([]);
   const [value, setValue] = useState("");
   const [busy, setBusy] = useState(false);
@@ -35,8 +32,18 @@ export function FollowUpChat({ context }: { context: string }) {
     setMessages((m) => [...m, { role: "user", content: trimmed }]);
     setBusy(true);
     try {
-      const res = await ask({ data: { question: trimmed, context, history } });
-      setMessages((m) => [...m, { role: "assistant", content: res.answer }]);
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: trimmed, context, history }),
+      });
+
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(payload.error || "Something went wrong. Please try again.");
+      }
+
+      setMessages((m) => [...m, { role: "assistant", content: payload.answer }]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {

@@ -7,7 +7,11 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+.next
+
 node_modules
+.env
+.env.*
 dist
 dist-ssr
 .output
