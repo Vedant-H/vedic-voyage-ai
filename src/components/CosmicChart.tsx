@@ -54,10 +54,11 @@ export function CosmicChart({ className = "" }: { className?: string }) {
           return (
             <line
               key={i}
-              x1={240 + Math.cos(a) * 198}
-              y1={240 + Math.sin(a) * 198}
-              x2={240 + Math.cos(a) * 226}
-              y2={240 + Math.sin(a) * 226}
+              x1={(240 + Math.cos(a) * 198).toFixed(3)}
+              y1={(240 + Math.sin(a) * 198).toFixed(3)}
+              x2={(240 + Math.cos(a) * 226).toFixed(3)}
+              y2={(240 + Math.sin(a) * 226).toFixed(3)}
+
               stroke="oklch(0.83 0.11 86 / 45%)"
               strokeWidth="1"
             />
