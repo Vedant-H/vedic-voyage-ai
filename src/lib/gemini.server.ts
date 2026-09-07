@@ -37,6 +37,97 @@ export async function callGemini(messages: GatewayMessage[], maxTokens = 8000): 
 }
 
 /**
+ * Streams tokens from Gemini using Server-Sent Events (SSE).
+ */
+export async function* streamGemini(
+  messages: GatewayMessage[],
+  maxTokens = 8000,
+): AsyncGenerator<string> {
+  const geminiKey = process.env["GEMINI_API_KEY"];
+  const model = process.env["GEMINI_MODEL"] || "gemini-2.5-flash";
+
+  if (!geminiKey) {
+    const text = await callGemini(messages, maxTokens);
+    yield text;
+    return;
+  }
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${geminiKey}`;
+
+  const systemMessage = messages.find((m) => m.role === "system");
+  const conversation = messages.filter((m) => m.role !== "system");
+
+  const contents = conversation.map((m) => ({
+    role: m.role === "assistant" ? "model" : "user",
+    parts: [{ text: m.content }],
+  }));
+
+  const payload: Record<string, unknown> = {
+    contents,
+    generationConfig: {
+      maxOutputTokens: maxTokens,
+      temperature: 0.7,
+      responseMimeType: "application/json",
+    },
+  };
+
+  if (systemMessage) {
+    payload["systemInstruction"] = {
+      parts: [{ text: systemMessage.content }],
+    };
+  }
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    const text = await callGemini(messages, maxTokens);
+    yield text;
+    return;
+  }
+
+  if (!res.ok || !res.body) {
+    const text = await callGemini(messages, maxTokens);
+    yield text;
+    return;
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || !trimmed.startsWith("data:")) continue;
+      const jsonStr = trimmed.slice(5).trim();
+      if (!jsonStr || jsonStr === "[DONE]") continue;
+
+      try {
+        const parsed = JSON.parse(jsonStr) as {
+          candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+        };
+        const chunk = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (chunk) yield chunk;
+      } catch {
+        /* continue */
+      }
+    }
+  }
+}
+
+/**
  * Direct call to Google Gemini REST API (Google AI Studio)
  */
 async function callDirectGoogleGemini(
@@ -61,6 +152,7 @@ async function callDirectGoogleGemini(
     generationConfig: {
       maxOutputTokens: maxTokens,
       temperature: 0.7,
+      responseMimeType: "application/json",
     },
   };
 
@@ -154,20 +246,34 @@ async function callLovableGateway(
 
 /** Safely extracts JSON from a model response that may contain fences or prose. */
 export function parseJsonLoose<T>(raw: string): T | null {
-  const cleaned = raw
-    .replace(/^```(?:json)?/i, "")
-    .replace(/```$/i, "")
-    .trim();
+  if (!raw) return null;
+  let cleaned = raw.trim();
+
+  // Strip code fences with multiline regex
+  cleaned = cleaned.replace(/^```(?:json)?\s*/im, "");
+  cleaned = cleaned.replace(/\s*```$/im, "");
+  cleaned = cleaned.trim();
+
   const candidates = [cleaned];
   const start = cleaned.indexOf("{");
   const end = cleaned.lastIndexOf("}");
-  if (start !== -1 && end > start) candidates.push(cleaned.slice(start, end + 1));
+  if (start !== -1 && end > start) {
+    candidates.push(cleaned.slice(start, end + 1));
+  }
 
   for (const candidate of candidates) {
     try {
       return JSON.parse(candidate) as T;
     } catch {
-      /* try next */
+      try {
+        const sanitized = candidate.replace(/[\u0000-\u001F]+/g, (match) => {
+          if (match === "\n" || match === "\r" || match === "\t") return match;
+          return "";
+        });
+        return JSON.parse(sanitized) as T;
+      } catch {
+        /* try next */
+      }
     }
   }
   return null;

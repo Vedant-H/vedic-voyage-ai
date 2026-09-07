@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, Inter_Tight } from "next/font/google";
+import { Navbar } from "@/components/Navbar";
 import "../styles.css";
 
 const cormorant = Cormorant_Garamond({
@@ -50,9 +51,11 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
-      <body className="min-h-screen bg-background text-foreground antialiased font-sans">
-        {children}
+      <body className="min-h-screen bg-background text-foreground antialiased font-sans flex flex-col">
+        <Navbar />
+        <div className="flex-1">{children}</div>
       </body>
     </html>
   );
 }
+

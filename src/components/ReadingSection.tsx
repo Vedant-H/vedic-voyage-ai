@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ChevronDown, type LucideIcon } from "lucide-react";
+import { cleanProse } from "@/lib/utils";
 
 interface Props {
   index: number;
@@ -15,8 +16,9 @@ interface Props {
 export function ReadingSection({ index, title, icon: Icon, content, defaultOpen = false }: Props) {
   const [open, setOpen] = useState(defaultOpen);
   const id = `section-${index}`;
+  const sanitizedContent = cleanProse(content);
 
-  if (!content) return null;
+  if (!sanitizedContent) return null;
 
   return (
     <motion.section
@@ -65,7 +67,7 @@ export function ReadingSection({ index, title, icon: Icon, content, defaultOpen 
             className="overflow-hidden"
           >
             <div className="space-y-4 px-5 pb-6 text-sm leading-relaxed text-muted-foreground sm:px-7 sm:text-[15px]">
-              {content.split(/\n{1,2}/).map((para, i) =>
+              {sanitizedContent.split(/\n{1,2}/).map((para, i) =>
                 para.trim() ? (
                   <p key={i} className="print-plain">
                     {para.trim()}
@@ -79,7 +81,7 @@ export function ReadingSection({ index, title, icon: Icon, content, defaultOpen 
 
       {/* Always-visible copy for printing */}
       <div className="hidden print:block print-plain px-7 pb-6 text-sm">
-        {content.split(/\n{1,2}/).map((para, i) =>
+        {sanitizedContent.split(/\n{1,2}/).map((para, i) =>
           para.trim() ? (
             <p key={i} className="mb-2">
               {para.trim()}

@@ -6,8 +6,10 @@ import {
   Briefcase,
   Coins,
   Compass,
+  Crown,
   GraduationCap,
   Heart,
+  Lock,
   Sparkles,
   Sun,
   User,
@@ -19,6 +21,7 @@ import { ReadingHeader } from "@/components/ReadingHeader";
 import { ReadingSection } from "@/components/ReadingSection";
 import { Button } from "@/components/ui/button";
 import { buildChatContext, clearReading, loadReading } from "@/lib/reading-store";
+import { KundliViewer } from "@/components/charts/KundliViewer";
 import type { StoredReading } from "@/types/astrology";
 
 export default function ReadingPage() {
@@ -27,7 +30,8 @@ export default function ReadingPage() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    setStored(loadReading());
+    const loaded = loadReading();
+    setStored(loaded);
     setReady(true);
   }, []);
 
@@ -72,6 +76,8 @@ export default function ReadingPage() {
             }}
           />
 
+          {stored.vedicChart && <KundliViewer chart={stored.vedicChart} />}
+
           {(reading.strengths.length > 0 || reading.challenges.length > 0) && (
             <div className="grid gap-4 sm:grid-cols-2">
               <ListPanel title="Core strengths" items={reading.strengths} tone="gold" />
@@ -109,6 +115,18 @@ export default function ReadingPage() {
             </section>
           )}
 
+          {/* Dossier Badge */}
+          <div className="flex items-center justify-between rounded-2xl border border-[var(--gold)]/40 bg-[var(--gold)]/10 px-5 py-3 text-sm text-[var(--gold)]">
+            <div className="flex items-center gap-2 font-medium">
+              <Crown className="size-4" />
+              <span>Complete Vedic Master Dossier</span>
+            </div>
+            <span className="text-xs uppercase tracking-wider text-muted-foreground">
+              Full Parashari Access
+            </span>
+          </div>
+
+          {/* All 7 Detailed Sections */}
           <div className="space-y-4">
             <h2 className="font-display text-2xl">Your reading in detail</h2>
             {sections.map((s, i) => (
@@ -123,9 +141,10 @@ export default function ReadingPage() {
             ))}
           </div>
 
+          {/* Practical Guidance & Remedies */}
           {reading.guidance.length > 0 && (
             <section className="glass-panel print-plain rounded-3xl p-6 sm:p-8">
-              <h2 className="font-display text-2xl">Practical guidance</h2>
+              <h2 className="font-display text-2xl">Practical guidance & BPHS remedies</h2>
               <ul className="mt-5 grid gap-4 sm:grid-cols-2">
                 {reading.guidance.map((g, i) => (
                   <li key={`${g.title}-${i}`} className="rounded-2xl border border-border bg-secondary/30 p-4">
@@ -139,6 +158,7 @@ export default function ReadingPage() {
             </section>
           )}
 
+          {/* Follow-up Chat Companion */}
           <FollowUpChat context={buildChatContext(stored)} />
 
           <p className="text-center text-xs leading-relaxed text-muted-foreground">

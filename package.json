@@ -2,13 +2,13 @@
   "name": "cosmiclens-ai",
   "version": "1.0.0",
   "private": true,
-  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "test": "tsx scripts/test-ephemeris.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -38,6 +38,7 @@
     "@radix-ui/react-toggle": "^1.1.10",
     "@radix-ui/react-toggle-group": "^1.1.11",
     "@radix-ui/react-tooltip": "^1.2.8",
+    "@react-pdf/renderer": "^4.9.0",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.49.1",
     "@tailwindcss/postcss": "^4.2.1",
@@ -74,6 +75,7 @@
     "eslint": "^9.21.0",
     "eslint-config-next": "^15.2.1",
     "prettier": "^3.5.2",
+    "tsx": "^4.23.13",
     "typescript": "^5.8.2"
   }
 }

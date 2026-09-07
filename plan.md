@@ -1,10 +1,27 @@
-# CosmicLens AI — Enterprise Production & Monetization Architecture Plan
+# CosmicLens AI — Enterprise Production Architecture & Astrotalk-Beating Product Blueprint
 
-This document outlines the end-to-end architectural blueprint and phased roadmap to build **CosmicLens AI (Vedic Voyage)** as a unified, production-grade, 100% Next.js application that can be deployed to **Vercel in 1-click** with zero separate microservices to maintain.
+This document outlines the end-to-end architectural roadmap to build **CosmicLens AI (Vedic Voyage)** into a high-margin, scalable enterprise platform. Deployed as a **100% Next.js application** on Vercel with zero external microservices to maintain.
 
 ---
 
-## 1. System Architecture & Core Engineering Pillars
+## 1. Product Strategy: CosmicLens AI vs. Astrotalk
+
+Astrotalk built a massive business by operating a human marketplace. However, its model suffers from heavy operational bloat, variable consultation quality, predatory upselling (costly pujas and gemstones), and high privacy friction.
+
+CosmicLens AI wins by replacing human inconsistency with **mathematical ephemeris accuracy**, **high psychological safety (confidentiality)**, and an **empathetic, context-aware Conversational AI Astrologer**.
+
+| Dimension | Astrotalk (Human Marketplace) | CosmicLens AI (Pure AI Engine) |
+| :--- | :--- | :--- |
+| **Core Value Proposition** | Emotional validation via 1-on-1 human connection. | Instant, private, high-fidelity synthesis of classical Vedic astrology. |
+| **Consultation Access** | Astrologer queues, per-minute billing (₹15–₹150+/min), call anxiety. | Zero latency, 24/7 continuous availability, zero judgment. |
+| **Margin & Unit Economics** | Compressed by 40–60% astrologer payouts & CAC. | Software margins (90%+); unit costs tied strictly to LLM inference. |
+| **Data Fidelity** | Often cold-reading, guesswork, or generic scripts. | Deterministic astronomical math (`astronomy-engine`, Lahiri Ayanamsha). |
+| **Privacy & Vulnerability** | Friction: Exposing personal crises to a stranger. | High psychological safety: confidential, private, encrypted. |
+| **Remedies Model** | Commercialized: Selling ₹5,000–₹50,000 gemstones & pujas. | Canonical & Sattvic: Practical lifestyle habits, fasting, mantras & charity. |
+
+---
+
+## 2. System Architecture & Core Engineering Pillars
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
@@ -18,8 +35,8 @@ This document outlines the end-to-end architectural blueprint and phased roadmap
 │  Client Presentation │  │  Server-Side Compute & APIs │  │   Edge & Static     │
 │  - App Router        │  │  - Next.js Route Handlers   │  │   - Zero-Hydration  │
 │  - React 19 + Radix  │  │  - Native TS Vedic Engine   │  │     SSG SEO Pages   │
-│  - Tailwind CSS v4   │  │    (`astronomy-engine`)     │  │   - Dynamic OG      │
-│  - North/South Chart │  │  - 3-Stage AI Agent Core    │  │     Card Generation │
+│  - North/South Chart │  │    (`astronomy-engine`)     │  │   - Dynamic OG      │
+│  - Push-to-Talk Voice│  │  - Multi-Agent Orchestrator │  │     Card Generation │
 └──────────────────────┘  └──────────────┬──────────────┘  └─────────────────────┘
                                          │
                     ┌────────────────────┴────────────────────┐
@@ -28,125 +45,113 @@ This document outlines the end-to-end architectural blueprint and phased roadmap
          │ Upstash Redis Cache │                   │   Supabase Cloud    │
          │ - Immutable Ephem.  │                   │   - PostgreSQL DB   │
          │ - Rate Limiting     │                   │   - Supabase Auth   │
+         │ - Session Vector RAG│                   │   - Cosmic Vault    │
          └─────────────────────┘                   └─────────────────────┘
 ```
 
-### Pillar A: In-Process TypeScript Vedic Engine (`astronomy-engine` / WASM)
-* **Design Decision**: Rather than managing a separate Python microservice (which requires two hosting providers, CORS management, and multi-service failure points), we run high-precision astronomical calculations directly inside Next.js using [`astronomy-engine`](https://www.npmjs.com/package/astronomy-engine).
-* **Mathematical Precision**:
-  * True geocentric planetary longitudes computed to arcsecond accuracy.
-  * Precise **Lahiri Ayanamsha (Chitra Paksha)** offset calculation.
-  * Ascendant (Lagna) and House Cusps (Sripati / Bhava Chalit and Equal House).
-  * Planetary strengths: Exaltations, debilitations, combustions (Asta), and retrograde motions.
-  * Moon Nakshatra & Pada calculations.
-  * Vimshottari Dasha calculations (Mahadasha, Antardasha, Pratyantardasha) with exact timeline transitions.
-  * Runs natively inside Vercel Serverless and Edge Functions with sub-millisecond execution times.
+### Pillar A: In-Process TypeScript Vedic Engine (`astronomy-engine`)
+* Mathematical geocentric longitudes computed to arcsecond accuracy.
+* **Lahiri Ayanamsha (Chitra Paksha)** offset calculation.
+* Ascendant (Lagna) and House Cusps (Parashari Whole-Sign & Bhava Chalit).
+* Exaltations, debilitations, combustions (Asta), and retrograde detection.
+* Vimshottari Dasha calculations (Mahadasha, Antardasha, Pratyantardasha).
+* Yogas (Gaja Kesari, Budhaditya, etc.) and Doshas (Manglik, Kalsarpa, Sade Sati).
 
-### Pillar B: Agentic AI Orchestration & Scriptural RAG
-* **Beyond Single-Prompt Wrappers**:
-  1. **Ephemeris Data Parser Agent**: Ingests raw TypeScript calculation outputs, translating mathematical angles and house positions into structured astrological facts (e.g., Saturn transit over natal Moon = Sade Sati; 7th lord exalted in 10th house).
-  2. **Scriptural RAG Specialist Agent**: Queries a curated vector store (Brihat Parashara Hora Shastra, Phaladeepika) or canonical knowledge graph to retrieve verified, authentic interpretations for identified yogas.
-  3. **Empathetic Narrative Synthesis Agent**: Synthesizes facts and classical wisdom into an engaging, structured reading using Gemini 2.0/3.0 with streaming responses (SSE).
+### Pillar B: The Empathetic Conversational AI Astrologer (Life Struggle Companion)
+Users seek astrology during acute life struggles (heartbreak, career stagnation, health anxiety, parental burdens). A robotic calculator fails here. CosmicLens deploys a **3-tier agentic consultation framework**:
+1. **The Active Listener Agent**: Validates emotional pain first. Identifies the life theme (career, 4th house family, 7th house relationships) without judgment.
+2. **Astrological RAG Specialist Agent**: Queries the user's specific natal chart, active Vimshottari dasha, and Gochara transits to find the temporal root of the friction.
+3. **The Therapeutic Synthesizer Agent**: Merges technical astrology with compassionate mentorship. Reframes difficult transits (e.g. Saturn or Rahu) not as "punishments" but as necessary growth seasons.
+4. **Crisis Circuit Breakers**: Automatic intercept layer scanning for self-harm or medical emergencies, instantly triggering professional crisis helplines.
+5. **Persistent Session Memory**: Long-term context recalling past struggles across sessions (e.g., *"Last time we spoke, you carried immense pressure supporting your parents. With Jupiter shifting, how has that felt this week?"*).
+6. **Push-to-Talk Voice Companion**: Direct integration with Gemini Multimodal Live API for natural bidirectional spoken dialogue with barge-in support.
 
-### Pillar C: Permanent Deterministic Ephemeris Caching
-* **Mechanism**:
-  * Birth moment coordinates are immutable: `SHA256(UTC_Timestamp + Latitude + Longitude + Ayanamsha)`.
-  * Store the complete raw calculation in Upstash Redis with permanent TTL.
-  * Ephemeris calculations run strictly **once per unique birth moment**.
-  * Transits and daily horoscopes layer dynamically on top of the cached natal foundation.
+### Pillar C: Living Timeline & Dynamic Transits (Gochara)
+* **Live Transit Overlay**: Visualizing current planetary movements over the natal chart (e.g., Saturn transiting natal Moon = Sade Sati).
+* **Interactive Dasha Scrubber**: Clickable nested Mahadasha ➔ Antardasha ➔ Pratyantardasha timeline to inspect any past or future period.
+* **Key Event Chronology**: Upcoming planetary shifts and their impact on specific houses.
 
-### Pillar D: Zero-Hydration Programmatic SEO Engine
-* **Strategy**: Pre-render 10,000+ programmatic landing pages (Zodiac sign + Nakshatra combinations, transit guides, compatibility tools) at build time.
-* **Core Web Vitals**: Delivered as pure zero-JS static HTML for near-instant mobile load times and top Google search rankings.
+### Pillar D: Multi-Chart Synastry & Divisional Vargas
+* **36-Point Ashta-Kuta Kundli Milan**: Relationship matching with Nadi Dosha, Bhakoot analysis, and AI commentary on emotional vs. financial compatibility.
+* **Divisional Charts**: D9 (Navamsha for marriage and inner potential) and D10 (Dashamsha for career trajectory).
+
+### Pillar E: Strict Privacy & Transient Guest Architecture
+* **Guest Privacy**: If a user is not signed in, reports are purely transient (`sessionStorage` only). When the user closes the website/tab, the report is permanently discarded. Zero local device persistence without consent.
+* **Encrypted Cloud Vault**: Charts and readings are saved only when authenticated via Supabase Auth, secured by PostgreSQL Row-Level Security (RLS).
 
 ---
 
-## 2. Monetization Strategy & Revenue Architecture
+## 3. Monetization Strategy & Product Packaging
 
-### Pricing & Packaging
 | Product Tier | Price Point | Deliverables & Feature Gate |
 | :--- | :--- | :--- |
-| **Free Explorer (Hook)** | $0 / ₹0 | Exact Ascendant, Moon Sign, Nakshatra, interactive North/South Kundli charts, 300-word overview. |
-| **Comprehensive Life Dossier** | $6.99 / ₹399 | 25+ page professional PDF report covering career, finances, marriage timing, Sade Sati analysis, and remedies. |
-| **Kundli Milan (Synastry)** | $4.99 / ₹299 | 36-point Ashtakoota matching, Manglik dosha analysis, emotional and relationship compatibility. |
-| **Cosmic Pass (Subscription)** | $9.99/mo or $79/yr<br>(₹499/mo or ₹3,999/yr) | Unlimited AI follow-up questions, daily personalized transit notifications (WhatsApp/Email), up to 5 saved family vaults. |
-| **Consultation Credit Bundles** | $2.99 / ₹149 (5 credits) | Pay-as-you-go credits for targeted questions to the AI Astrologer. |
+| **Free Basic Snapshot** | $0 / ₹0 | Ascendant, Moon Sign, Nakshatra, Whole-Sign Kundli, Core Strengths, and 2 teaser chapters. Fully discarded upon closing tab. |
+| **Master Life Dossier** | $19 / ₹1,499 | Complete 15-page dossier: 12-house deep dive, 120-year Vimshottari timeline, classical BPHS remedies, vector PDF download. |
+| **Kundli Milan (Synastry)** | $9.99 / ₹799 | 36-point Guna Milan matching between any two profiles in the Cosmic Vault. |
+| **Cosmic Pass (Subscription)** | $14.99/mo<br>(₹999/mo) | Unlimited AI Astrologer consultations, live daily transit briefings, full multi-profile vault, Google/Apple Calendar auspicious transit sync. |
 
-### Dual Payment Gateway Architecture
-* **Global Users**: **Stripe** (Credit/Debit cards, Apple Pay, Google Pay).
-* **Indian & Emerging Markets**: **Razorpay / Lemon Squeezy** (UPI, Netbanking, RuPay) to eliminate checkout friction.
+* **Gateways**: Stripe (USD, EUR, Apple Pay) + Razorpay (INR, UPI, GPay, PhonePe, NetBanking).
 
 ---
 
-## 3. Phased Execution Roadmap
+## 4. Phased Execution Roadmap
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│ Phase 1: Engine Foundation & Mathematical Precision (TypeScript)        │
-│ - Native TS Vedic engine using astronomy-engine (Lahiri Ayanamsha)      │
-│ - Geocoding, timezone resolution, and deterministic Upstash Redis cache │
-│ - Interactive North & South Indian Kundli chart components (SVG)        │
+│ Phase 1: Engine Foundation & Mathematical Precision (COMPLETE)          │
+│ - Pure TypeScript ephemeris engine (Lahiri Ayanamsha, houses, dashas)   │
+│ - Interactive SVG North & South Indian Kundli charts                    │
+│ - Geocoding, timezone resolution, Upstash Redis caching                 │
 └────────────────────────────────────┬────────────────────────────────────┘
                                      │
 ┌────────────────────────────────────▼────────────────────────────────────┐
-│ Phase 2: Agentic Intelligence & High-Value Deliverables                 │
-│ - Multi-agent orchestration (Fact Extractor ➔ Scriptural RAG ➔ Narrative)│
-│ - Server-Sent Events (SSE) streaming output in Next.js Route Handlers   │
-│ - High-resolution PDF Dossier generator (`@react-pdf/renderer`)         │
+│ Phase 2: Agentic Intelligence & High-Value Deliverables (COMPLETE)      │
+│ - 3-stage agentic synthesis (Data Parser ➔ Scriptural RAG ➔ Narrative)   │
+│ - Real-time SSE streaming API (`/api/reading/stream`)                   │
+│ - Vector PDF dossier generator (`@react-pdf/renderer`)                  │
 └────────────────────────────────────┬────────────────────────────────────┘
                                      │
 ┌────────────────────────────────────▼────────────────────────────────────┐
-│ Phase 3: Identity, Multi-Profile Vault & Retention                      │
-│ - Passwordless authentication (Supabase Auth via Next.js SSR)           │
-│ - Multi-chart Cosmic Vault (Self, Partner, Family)                      │
-│ - Dynamic Open Graph social sharing cards (`@vercel/og`)                │
+│ Phase 3: Identity & Cloud Vault (COMPLETE)                              │
+│ - Supabase Auth (`@supabase/ssr`) with Google & Magic Link               │
+│ - Cloud Cosmic Vault (`/vault`) with multi-profile categorization       │
+│ - Dynamic Open Graph card generation (`/api/og`)                        │
+│ - Strict ephemeral guest privacy (zero local leakage on tab close)      │
 └────────────────────────────────────┬────────────────────────────────────┘
                                      │
 ┌────────────────────────────────────▼────────────────────────────────────┐
-│ Phase 4: Monetization Engine & Paywall Workflows                        │
-│ - Dual payment processing (Stripe + Razorpay / UPI Webhooks)            │
-│ - Freemium gating & conversion-optimized unlock hooks                   │
-│ - Subscription management, webhooks, and billing portals                │
+│ Phase 4: Monetization Engine & Paywall Workflows (COMPLETE)             │
+│ - Dual payment routes (Stripe Checkout + Razorpay Order APIs)           │
+│ - Webhook handlers & HMAC signature verification                        │
+│ - Frosted-glass chapter gating & instant unlock modal                   │
 └────────────────────────────────────┬────────────────────────────────────┘
                                      │
 ┌────────────────────────────────────▼────────────────────────────────────┐
-│ Phase 5: Quality Assurance, Reliability & Data Integrity                │
-│ - Ground-truth Ephemeris validation suite against published BV Raman    │
-│ - Zod contract testing across all Next.js API route handlers            │
-│ - Playwright E2E testing for checkout & auth upgrade paths              │
+│ Phase 5: Automated QA & Ephemeris Verification (COMPLETE)               │
+│ - Node test suite benchmarked against known historical charts           │
+│ - Zod API contract validation and clean Next.js production compilation  │
 └────────────────────────────────────┬────────────────────────────────────┘
                                      │
 ┌────────────────────────────────────▼────────────────────────────────────┐
-│ Phase 6: Programmatic SEO, Production Hardening & Global Launch         │
-│ - Zero-hydration SSG landing pages for Nakshatras, signs & transits     │
-│ - Upstash Redis rate limiting & prompt injection shields                │
-│ - Legal compliance (GDPR, DPDP, disclaimer) & PostHog funnel analytics  │
+│ Phase 6: Conversational AI Astrologer & Living Transits (NEXT)          │
+│ - Empathetic chat companion with Dasha & Gochara transit injection      │
+│ - Crisis circuit breakers (`escalate_crisis`)                           │
+│ - Clickable 120-year interactive timeline scrubber                      │
+│ - Push-to-Talk voice interface (Gemini Multimodal Live)                 │
+│ - Ashta-Kuta 36-Point Kundli Milan matching                             │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 4. Production Tech Stack Matrix (100% Next.js)
+## 5. Production Tech Stack
 
-| Component | Technology | Rationale |
-| :--- | :--- | :--- |
-| **Framework** | Next.js 15+ (App Router) | Single deployment target on Vercel, native SSR/SSG/ISR, streaming support. |
-| **Vedic Engine** | `astronomy-engine` (TypeScript) | Pure JavaScript/TypeScript astronomical accuracy, sub-millisecond execution, zero server dependencies. |
-| **Styling & UI** | Tailwind CSS v4 + Radix UI | Modern, dark-mode cosmic aesthetic with high performance. |
-| **AI LLMs** | Google Gemini (2.5 / 3.0 Flash & Pro) | Low latency, 1M+ token context window, exceptional cost efficiency. |
-| **Caching & Rate Limits**| Upstash Redis | Serverless Redis for ratelimiting and permanent chart caching. |
-| **Database & Auth** | Supabase (PostgreSQL + Supabase Auth) | Direct integration with `@supabase/ssr` for server-side auth and row-level security. |
-| **Payments** | Stripe + Razorpay | Comprehensive coverage for both international cards and Indian UPI. |
-| **Testing** | Vitest + Zod + Playwright | Complete coverage: math accuracy, contract schemas, and revenue E2E flows. |
-| **PDF Generation** | `@react-pdf/renderer` | Client/server vector PDF generation with zero external Chromium binary needed. |
-
----
-
-## 5. Implementation Milestones
-
-* **Milestone 1 (Sprint 1–2)**: Next.js migration + native TypeScript calculation engine (`astronomy-engine` with Lahiri Ayanamsha) + North/South Kundli charts + Upstash Redis cache.
-* **Milestone 2 (Sprint 3–4)**: Multi-agent AI engine + Scriptural RAG + SSE streaming + Branded PDF generator.
-* **Milestone 3 (Sprint 5–6)**: Supabase Auth (`@supabase/ssr`) + Cosmic Vault + Dynamic `@vercel/og` share cards.
-* **Milestone 4 (Sprint 7–8)**: Stripe & Razorpay dual checkout + Freemium paywalls + Subscription management.
-* **Milestone 5 (Sprint 9)**: Ground-truth mathematical test suite + Zod contracts + Playwright E2E checkout testing.
-* **Milestone 6 (Sprint 10)**: Programmatic SEO generation + Rate limiting + Legal compliance + Public launch on Vercel.
+| Layer | Technology |
+| :--- | :--- |
+| **Framework** | Next.js 15+ (App Router), React 19, Tailwind CSS v4 |
+| **Astrology Math** | Pure TypeScript (`astronomy-engine`) with Lahiri Ayanamsha |
+| **AI LLM** | Google Gemini (2.5 / 3.0 Flash & Gemini Multimodal Live API) |
+| **Database & Auth** | Supabase PostgreSQL + Supabase Auth (`@supabase/ssr`) |
+| **Payments** | Stripe (Global Cards) + Razorpay (Indian UPI & Cards) |
+| **Caching** | Upstash Redis |
+| **PDF** | `@react-pdf/renderer` (Dynamic client-side vector renderer) |

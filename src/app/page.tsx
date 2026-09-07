@@ -50,10 +50,10 @@ export default function HomePage() {
         throw new Error(data.error || "Failed to generate reading");
       }
 
-      saveReading({ birth, ...data });
+      saveReading({ birth, ...data, isUnlocked: true });
       router.push("/reading");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      setError(err instanceof Error ? err.message : "Failed to generate reading. Please try again.");
       setStatus("idle");
     }
   }
