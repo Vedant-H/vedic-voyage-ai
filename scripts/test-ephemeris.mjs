@@ -72,4 +72,70 @@ console.log("🌟 Running Vedic Ephemeris & Astronomical Integrity Test Suite...
   console.log("✓ Complete Janma Kundli calculation verified with astronomical precision!");
 }
 
-console.log("\n🎉 ALL TESTS PASSED SUCCESSFULLY! The Vedic ephemeris engine is rock solid.\n");
+// Test 4: 120-Year Vimshottari Timeline Scrubber & Dasha Lookup
+{
+  const { getDashaAtDate } = await import("../src/lib/vedic/dasha.ts");
+  const chart = calculateVedicChart({
+    dateOfBirth: "1990-05-15",
+    timeOfBirth: "14:30",
+    latitude: 19.076,
+    longitude: 72.8777,
+    timezoneOffsetHours: 5.5,
+  });
+
+  const testDate2026 = new Date(2026, 6, 1);
+  const activePeriod = getDashaAtDate(chart.dasha.mahadashas, testDate2026);
+  assert(activePeriod, "Must locate active Dasha for year 2026");
+  assert(activePeriod.mahadasha.lord, "Mahadasha lord must be identified");
+  assert(activePeriod.antardasha.subLord, "Antardasha subLord must be identified");
+  console.log(`✓ Timeline Scrubber: In 2026, active period is ${activePeriod.mahadasha.lord} - ${activePeriod.antardasha.subLord}`);
+}
+
+// Test 5: Live Gochara Transits Engine
+{
+  const { calculateGocharaTransits } = await import("../src/lib/vedic/transits.ts");
+  const chart = calculateVedicChart({
+    dateOfBirth: "1995-10-24",
+    timeOfBirth: "06:15",
+    latitude: 28.6139,
+    longitude: 77.209,
+    timezoneOffsetHours: 5.5,
+  });
+
+  const transits = calculateGocharaTransits(chart);
+  assert(transits.transits["Jupiter"], "Jupiter transit must exist");
+  assert(transits.transits["Saturn"], "Saturn transit must exist");
+  assert(transits.transits["Rahu"], "Rahu transit must exist");
+  assert(transits.specialEvents.sadeSati, "Sade Sati status must be computed");
+  console.log(`✓ Live Gochara Transits: Jupiter currently transiting house ${transits.transits["Jupiter"].transitHouseFromMoon} from Moon`);
+  console.log(`✓ Live Sade Sati Status: ${transits.specialEvents.sadeSati.phase} (Active: ${transits.specialEvents.sadeSati.active})`);
+}
+
+// Test 6: 36-Point Ashta-Kuta Kundli Milan Matching
+{
+  const { calculateKundliMilan } = await import("../src/lib/vedic/milan.ts");
+  const chart1 = calculateVedicChart({
+    dateOfBirth: "1995-01-10",
+    timeOfBirth: "10:00",
+    latitude: 28.6139,
+    longitude: 77.209,
+    timezoneOffsetHours: 5.5,
+  });
+  const chart2 = calculateVedicChart({
+    dateOfBirth: "1996-03-20",
+    timeOfBirth: "15:30",
+    latitude: 19.076,
+    longitude: 72.8777,
+    timezoneOffsetHours: 5.5,
+  });
+
+  const milan = calculateKundliMilan(chart1, chart2);
+  assert(milan.totalScore >= 0 && milan.totalScore <= 36, "Milan score must be between 0 and 36");
+  assert.equal(milan.maxScore, 36, "Max score must be 36");
+  assert(milan.kutas.nadi, "Nadi Kuta must be calculated");
+  assert(milan.kutas.bhakoot, "Bhakoot Kuta must be calculated");
+  console.log(`✓ 36-Point Kundli Milan: Total Score = ${milan.totalScore}/36 (${milan.verdictSanskrit} · ${milan.verdict})`);
+  console.log(`✓ Manglik Compatibility: ${milan.manglikAnalysis.summary}`);
+}
+
+console.log("\n🎉 ALL TESTS PASSED SUCCESSFULLY! The complete Vedic engine, Timeline Scrubber, Transits, and Milan matching are rock solid.\n");

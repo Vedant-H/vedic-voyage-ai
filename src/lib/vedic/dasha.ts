@@ -151,3 +151,136 @@ export function calculateVimshottariDasha(
     },
   };
 }
+
+export const DASHA_THEMES: Record<
+  string,
+  {
+    element: string;
+    archetype: string;
+    focus: string;
+    opportunity: string;
+    caution: string;
+  }
+> = {
+  Sun: {
+    element: "Fire / Soul",
+    archetype: "The Sovereign",
+    focus: "Self-realization, vitality, authority, leadership, and public recognition.",
+    opportunity: "Stepping into sovereign authority, career advancement, clarity of life purpose.",
+    caution: "Avoid egoic friction with mentors, authority figures, or fatherly figures.",
+  },
+  Moon: {
+    element: "Water / Mind",
+    archetype: "The Nurturer & Intuitive",
+    focus: "Emotional equilibrium, family harmony, subconscious mind, and public connection.",
+    opportunity: "Deep emotional healing, creative breakthroughs, cultivating peace and nourishment.",
+    caution: "Watch mood fluctuations, emotional over-attachment, and sleep cycles.",
+  },
+  Mars: {
+    element: "Fire / Drive",
+    archetype: "The Warrior & Pioneer",
+    focus: "Courage, physical vitality, enterprise, property, and decisive action.",
+    opportunity: "Bold ventures, physical transformation, land/real estate investments, overcoming hurdles.",
+    caution: "Guard against rash impulses, inflammatory temper, and interpersonal conflicts.",
+  },
+  Rahu: {
+    element: "Shadow / Obsession",
+    archetype: "The Alchemist & Disruptor",
+    focus: "Material ambition, unconventional exploration, foreign ventures, and radical growth.",
+    opportunity: "Exponential worldly breakthroughs, innovative risk-taking, technological mastery.",
+    caution: "Avoid illusion, hasty get-rich schemes, or losing touch with spiritual grounding.",
+  },
+  Jupiter: {
+    element: "Ether / Wisdom",
+    archetype: "The Guru & Sage",
+    focus: "Higher philosophy, ethics, abundance, progeny, and spiritual evolution.",
+    opportunity: "Financial prosperity, profound mentorship, expanding consciousness and grace.",
+    caution: "Beware of complacency, dogma, or over-expansion without practical systems.",
+  },
+  Saturn: {
+    element: "Air / Karma",
+    archetype: "The Master Builder & Hermit",
+    focus: "Karmic reckoning, perseverance, discipline, humility, and enduring structures.",
+    opportunity: "Forging permanent legacy, unshakeable resilience, mastery through focused patience.",
+    caution: "Do not surrender to pessimism, isolation, or chronic fatigue; maintain steady daily habits.",
+  },
+  Mercury: {
+    element: "Earth / Intellect",
+    archetype: "The Merchant & Scholar",
+    focus: "Commerce, analytical learning, speech, network creation, and mental sharpness.",
+    opportunity: "Flourishing business, writing, new skill mastery, communicative resonance.",
+    caution: "Prevent nervous burnout, overthinking, and scattered multitasking.",
+  },
+  Ketu: {
+    element: "Shadow / Liberation",
+    archetype: "The Mystic & Renunciate",
+    focus: "Spiritual liberation (Moksha), detachment from ego, esoteric wisdom, and sudden shifts.",
+    opportunity: "Unlocking past-life karmic gifts, transcendent intuition, freedom from false desires.",
+    caution: "Avoid alienation from worldly duties or abrupt existential despair.",
+  },
+  Venus: {
+    element: "Water / Harmony",
+    archetype: "The Artist & Lover",
+    focus: "Love, refined aesthetics, diplomatic grace, wealth accumulation, and sensuous joy.",
+    opportunity: "Harmonious relationships, artistic creations, financial luxury, cultural refinement.",
+    caution: "Guard against indulgence, superficial attachments, or compromise of self-worth.",
+  },
+};
+
+/**
+ * Finds the exact active Mahadasha and Antardasha for any specified historical or future date.
+ */
+export function getDashaAtDate(
+  mahadashas: MahadashaInfo[],
+  targetDate: Date,
+): {
+  mahadasha: MahadashaInfo;
+  antardasha: AntardashaInfo;
+  pratyantardashaLord: string;
+  progressPercent: number;
+} | null {
+  const targetMs = targetDate.getTime();
+
+  for (const md of mahadashas) {
+    const mdStart = new Date(md.startDate).getTime();
+    const mdEnd = new Date(md.endDate).getTime();
+
+    if (targetMs >= mdStart && targetMs <= mdEnd) {
+      for (const ad of md.antardashas) {
+        const adStart = new Date(ad.startDate).getTime();
+        const adEnd = new Date(ad.endDate).getTime();
+
+        if (targetMs >= adStart && targetMs <= adEnd) {
+          const antarLordIndex = VIMSHOTTARI_CYCLE.findIndex((c) => c.planet === ad.subLord);
+          const antarTotalMs = Math.max(adEnd - adStart, 1);
+          const elapsed = targetMs - adStart;
+          const fraction = Math.max(0, Math.min(1, elapsed / antarTotalMs));
+          const pratyantarIndex = Math.min(Math.floor(fraction * 9), 8);
+          const pratyantarLord = VIMSHOTTARI_CYCLE[(antarLordIndex + pratyantarIndex) % 9]!.planet;
+
+          const mdTotalMs = Math.max(mdEnd - mdStart, 1);
+          const mdProgress = Math.round(((targetMs - mdStart) / mdTotalMs) * 100);
+
+          return {
+            mahadasha: md,
+            antardasha: ad,
+            pratyantardashaLord: pratyantarLord,
+            progressPercent: mdProgress,
+          };
+        }
+      }
+
+      // If falls within md but slightly beyond last ad due to rounding:
+      const lastAd = md.antardashas[md.antardashas.length - 1]!;
+      return {
+        mahadasha: md,
+        antardasha: lastAd,
+        pratyantardashaLord: lastAd.subLord,
+        progressPercent: 99,
+      };
+    }
+  }
+
+  return null;
+}
+

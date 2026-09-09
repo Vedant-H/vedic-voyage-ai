@@ -22,6 +22,7 @@ import { ReadingSection } from "@/components/ReadingSection";
 import { Button } from "@/components/ui/button";
 import { buildChatContext, clearReading, loadReading } from "@/lib/reading-store";
 import { KundliViewer } from "@/components/charts/KundliViewer";
+import { CosmicWeatherBar } from "@/components/CosmicWeatherBar";
 import type { StoredReading } from "@/types/astrology";
 
 export default function ReadingPage() {
@@ -75,6 +76,8 @@ export default function ReadingPage() {
               router.push("/");
             }}
           />
+
+          {stored.vedicChart && <CosmicWeatherBar chart={stored.vedicChart} />}
 
           {stored.vedicChart && <KundliViewer chart={stored.vedicChart} />}
 

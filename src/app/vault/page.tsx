@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AuthModal } from "@/components/auth/AuthModal";
+import { KundliMilanModal } from "@/components/milan/KundliMilanModal";
 import { createClient } from "@/lib/supabase/client";
 import { saveReading } from "@/lib/reading-store";
 import { calculateVedicChart } from "@/lib/vedic";
@@ -112,6 +113,7 @@ export default function VaultPage() {
   const [charts, setCharts] = useState<VaultChartItem[]>([]);
   const [selectedTag, setSelectedTag] = useState("All");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [milanOpen, setMilanOpen] = useState(false);
 
   const supabase = createClient();
 
@@ -282,7 +284,17 @@ export default function VaultPage() {
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              {charts.length >= 2 && (
+                <Button
+                  variant="outline"
+                  onClick={() => setMilanOpen(true)}
+                  className="border-[var(--gold)]/40 text-[var(--gold)] hover:bg-[var(--gold)]/10 font-medium"
+                >
+                  <Heart className="size-4 mr-1.5 fill-[var(--gold)]" />
+                  Kundli Milan (Matching)
+                </Button>
+              )}
               <Button asChild size="default" className="shadow-lg">
                 <Link href="/">
                   <Plus className="size-4 mr-1.5" />
@@ -451,6 +463,11 @@ export default function VaultPage() {
       </div>
 
       <AuthModal open={authOpen} onOpenChange={setAuthOpen} />
+      <KundliMilanModal
+        open={milanOpen}
+        onOpenChange={setMilanOpen}
+        vaultCharts={charts}
+      />
     </main>
   );
 }

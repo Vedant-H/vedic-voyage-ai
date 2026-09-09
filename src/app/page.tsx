@@ -2,8 +2,20 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { motion } from "motion/react";
-import { Moon, Orbit, ShieldCheck, Sparkles, Stars, Wand2 } from "lucide-react";
+import {
+  Clock,
+  Compass,
+  FolderLock,
+  Heart,
+  Moon,
+  Orbit,
+  ShieldCheck,
+  Sparkles,
+  Stars,
+  Wand2,
+} from "lucide-react";
 
 import { AstrologyForm } from "@/components/AstrologyForm";
 import { CosmicChart } from "@/components/CosmicChart";
@@ -15,18 +27,33 @@ import { DISCLAIMER, type BirthDetails } from "@/types/astrology";
 const FEATURES = [
   {
     icon: Orbit,
-    title: "Planetary influences",
-    body: "Traditional interpretations of each planet's role in your chart, written in plain language.",
+    title: "Astronomical Ephemeris & Kundli",
+    body: "Arcsecond Lahiri math computing Ascendant, House Cusps, and interactive North and South Indian charts.",
   },
   {
-    icon: Moon,
-    title: "Twelve life areas",
-    body: "Personality, career, money, relationships, education, spirituality and current themes.",
+    icon: Clock,
+    title: "120-Year Life Timeline",
+    body: "Scrub across your lifespan to inspect Mahadashas, Antardashas, and Pratyantardashas with period themes.",
+  },
+  {
+    icon: Compass,
+    title: "Live Gochara Transits",
+    body: "Real-time planetary sky movements, Saturn Sade Sati detection, and auspicious Jupiter shifts.",
+  },
+  {
+    icon: Heart,
+    title: "36-Point Kundli Milan",
+    body: "Canonical Ashta-Kuta relationship synastry, Kuja (Manglik) matching, and AI relational guidance.",
   },
   {
     icon: Wand2,
-    title: "Ask follow-ups",
-    body: "Chat with your reading and get answers grounded in what was generated for you.",
+    title: "Push-to-Talk AI Companion",
+    body: "Ask questions verbally or type to chat with an empathetic guide protected by crisis circuit breakers.",
+  },
+  {
+    icon: FolderLock,
+    title: "Encrypted Cosmic Vault",
+    body: "Save multiple family charts, download high-res vector PDF dossiers, and share dynamic preview cards.",
   },
 ];
 
@@ -88,13 +115,23 @@ export default function HomePage() {
               Share your birth date, time and place. Our AI astrologer composes a detailed,
               chapter-by-chapter reading you can explore, question and save.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Button size="lg" asChild>
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <Button size="lg" asChild className="shadow-lg">
                 <a href="#reading-form">
-                  <Sparkles className="size-4" aria-hidden="true" /> Start my reading
+                  <Sparkles className="size-4 mr-1.5" /> Start my reading
                 </a>
               </Button>
-              <span className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Button
+                size="lg"
+                variant="outline"
+                asChild
+                className="border-[var(--gold)]/40 text-[var(--gold)] hover:bg-[var(--gold)]/10"
+              >
+                <Link href="/milan">
+                  <Heart className="size-4 mr-1.5 fill-[var(--gold)]" /> Match Kundli Milan
+                </Link>
+              </Button>
+              <span className="flex items-center gap-2 text-xs text-muted-foreground ml-1">
                 <ShieldCheck className="size-4" aria-hidden="true" /> No account needed
               </span>
             </div>
@@ -109,7 +146,7 @@ export default function HomePage() {
           </motion.div>
         </section>
 
-        <section className="mx-auto grid max-w-6xl gap-4 px-4 pb-20 sm:grid-cols-3">
+        <section className="mx-auto grid max-w-6xl gap-4 px-4 pb-20 sm:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map(({ icon: Icon, title, body }) => (
             <article key={title} className="glass-panel rounded-2xl p-6">
               <span

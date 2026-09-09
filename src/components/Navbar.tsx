@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FolderLock, LogIn, LogOut, Sparkles, Stars, User } from "lucide-react";
+import { FolderLock, Heart, LogIn, LogOut, Sparkles, Stars, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { createClient } from "@/lib/supabase/client";
@@ -52,6 +52,18 @@ export function Navbar() {
               <Link href="/">
                 <Sparkles className="size-3.5 mr-1 text-[var(--gold)]" />
                 New Reading
+              </Link>
+            </Button>
+
+            <Button
+              variant={pathname === "/milan" ? "secondary" : "ghost"}
+              size="sm"
+              asChild
+              className="text-xs"
+            >
+              <Link href="/milan">
+                <Heart className="size-3.5 mr-1 fill-[var(--gold)] text-[var(--gold)]" />
+                Kundli Milan
               </Link>
             </Button>
 

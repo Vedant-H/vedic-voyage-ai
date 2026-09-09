@@ -5,6 +5,8 @@ import { Compass, Flame, ShieldAlert, Sparkles, Star } from "lucide-react";
 import type { CompleteVedicChart } from "@/lib/vedic";
 import { NorthIndianChart } from "./NorthIndianChart";
 import { SouthIndianChart } from "./SouthIndianChart";
+import { DashaTimelineScrubber } from "./DashaTimelineScrubber";
+import { GocharaTransitViewer } from "./GocharaTransitViewer";
 
 interface Props {
   chart: CompleteVedicChart;
@@ -12,7 +14,7 @@ interface Props {
 
 export function KundliViewer({ chart }: Props) {
   const [style, setStyle] = useState<"north" | "south">("north");
-  const [activeTab, setActiveTab] = useState<"chart" | "planets" | "yogas">("chart");
+  const [activeTab, setActiveTab] = useState<"chart" | "planets" | "yogas" | "timeline" | "transits">("chart");
 
   const { ascendant, planets, analysis, dasha, ayanamsha } = chart;
   const currentDasha = dasha.current;
@@ -62,6 +64,24 @@ export function KundliViewer({ chart }: Props) {
               }`}
             >
               Yogas & Doshas
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("timeline")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                activeTab === "timeline" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Timeline (120Y)
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("transits")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                activeTab === "transits" ? "bg-emerald-500 text-black shadow-sm font-semibold" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Transits (Live)
             </button>
           </div>
 
@@ -268,6 +288,23 @@ export function KundliViewer({ chart }: Props) {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Tab: 120-Year Vimshottari Timeline Scrubber */}
+      {activeTab === "timeline" && (
+        <div className="pt-2">
+          <DashaTimelineScrubber
+            mahadashas={dasha.mahadashas}
+            birthDateString={chart.birthUtcIso || new Date().toISOString()}
+          />
+        </div>
+      )}
+
+      {/* Tab: Real-time Gochara Transits */}
+      {activeTab === "transits" && (
+        <div className="pt-2">
+          <GocharaTransitViewer natalChart={chart} />
         </div>
       )}
     </section>
