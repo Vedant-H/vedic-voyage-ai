@@ -131,10 +131,13 @@ export async function POST(req: Request) {
     const astrologyData = toLegacyAstrologyData(vedicChart);
 
     // 4. Call Gemini with real mathematical chart data
-    const raw = await callGemini([
-      { role: "system", content: SYSTEM_PROMPT },
-      { role: "user", content: buildReadingPrompt(birth, astrologyData) },
-    ]);
+    const raw = await callGemini(
+      [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: buildReadingPrompt(birth, astrologyData) },
+      ],
+      16000
+    );
 
     const parsed = parseJsonLoose<unknown>(raw);
     if (!parsed) {

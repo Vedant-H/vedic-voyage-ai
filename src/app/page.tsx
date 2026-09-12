@@ -77,7 +77,30 @@ export default function HomePage() {
         throw new Error(data.error || "Failed to generate reading");
       }
 
-      saveReading({ birth, ...data, isUnlocked: true });
+      saveReading({ birth, ...data, isUnlocked: false });
+
+      // If user is already authenticated, automatically back up to cloud vault
+      try {
+        const { createClient } = await import("@/lib/supabase/client");
+        const supabase = createClient();
+        const { data: authData } = await supabase.auth.getUser();
+        if (authData?.user) {
+          fetch("/api/vault", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: birth.name || "My Chart",
+              relationship: "Self",
+              date_of_birth: birth.dateOfBirth,
+              time_of_birth: birth.timeOfBirth,
+              city: [birth.birthCity, birth.birthState, birth.birthCountry].filter(Boolean).join(", "),
+              chart_data: data.vedicChart,
+              reading_data: data.reading,
+            }),
+          }).catch((e) => console.warn("Background auto-vault save notice:", e));
+        }
+      } catch {}
+
       router.push("/reading");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to generate reading. Please try again.");

@@ -1,18 +1,26 @@
 "use client";
 
 import React, { useState } from "react";
-import { Download, Loader2, Printer } from "lucide-react";
+import { Download, Loader2, Lock, Printer } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import type { StoredReading } from "@/types/astrology";
 
 interface Props {
   stored: StoredReading;
+  onUnlock?: () => void;
 }
 
-export function PdfDownloadButton({ stored }: Props) {
+export function PdfDownloadButton({ stored, onUnlock }: Props) {
   const [generating, setGenerating] = useState(false);
 
   async function handleDownloadPdf() {
+    if (!stored.isUnlocked) {
+      toast.info("Unlock the Complete Vedic Dossier to download the 15-page PDF.");
+      if (onUnlock) onUnlock();
+      return;
+    }
+
     setGenerating(true);
     try {
       // Dynamically import @react-pdf/renderer to keep client bundle lean
@@ -43,11 +51,22 @@ export function PdfDownloadButton({ stored }: Props) {
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Button onClick={handleDownloadPdf} disabled={generating} size="lg">
+      <Button
+        onClick={handleDownloadPdf}
+        disabled={generating}
+        size="lg"
+        variant={stored.isUnlocked ? "default" : "outline"}
+        className={!stored.isUnlocked ? "border-dashed border-[var(--gold)]/50 text-foreground" : ""}
+      >
         {generating ? (
           <>
             <Loader2 className="size-4 animate-spin" aria-hidden="true" />
             Generating PDF…
+          </>
+        ) : !stored.isUnlocked ? (
+          <>
+            <Lock className="size-4 text-[var(--gold)]" aria-hidden="true" />
+            Download Dossier (PDF) · Locked
           </>
         ) : (
           <>

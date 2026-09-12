@@ -125,6 +125,17 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (chartInsertError) {
+      if (
+        chartInsertError.code === "PGRST205" ||
+        chartInsertError.message?.includes("schema cache") ||
+        chartInsertError.message?.includes("saved_charts")
+      ) {
+        return NextResponse.json({
+          success: true,
+          localOnly: true,
+          warning: "Supabase table public.saved_charts is missing. Report preserved in local browser vault.",
+        });
+      }
       return NextResponse.json({ error: chartInsertError.message }, { status: 400 });
     }
 

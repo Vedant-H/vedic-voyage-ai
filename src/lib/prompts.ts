@@ -54,8 +54,8 @@ ${birth.interests.length ? birth.interests.join(", ") : "Complete Reading"}
 CALCULATED ASTROLOGY DATA (from an astrology calculation engine):
 ${hasCalculations ? JSON.stringify(astrologyData) : "UNAVAILABLE — no astronomical calculations have been performed. Do NOT state exact planet positions, houses, Lagna, Nakshatra, Mahadasha, Antardasha or Doshas as facts. Frame planetary and house sections as traditional symbolic interpretations, clearly noting when precise chart calculation would be required to confirm them."}
 
-Provide 6-9 entries in planetaryInsights (including Rahu and Ketu), 4-6 entries in houseInsights, 4-6 strengths, 3-5 challenges and exactly 5 guidance items.
-Write substantial, specific paragraphs (120-220 words) for each titled section.
+Provide 7-9 entries in planetaryInsights (including Rahu and Ketu), 4-6 entries in houseInsights, 3-4 strengths, 3-4 challenges and 4-5 guidance items.
+Write thoughtful, specific paragraphs (80-130 words) for each titled section. Ensure the JSON is complete, fully formed and properly closed.
 
 Generate the response in valid JSON only, with no markdown fences and no commentary. Use this exact JSON structure:
 ${JSON_SHAPE}`;

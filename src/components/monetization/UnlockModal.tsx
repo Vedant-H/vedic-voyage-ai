@@ -15,6 +15,7 @@ import {
   Sparkles,
   Zap,
 } from "lucide-react";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -53,16 +54,17 @@ export function UnlockModal({ open, onOpenChange, onUnlockSuccess }: Props) {
       const data = await res.json();
       if (data.url) {
         if (data.isMock) {
+          toast.success("Mock payment verified! Complete reading unlocked.");
           onUnlockSuccess();
           onOpenChange(false);
         } else {
           window.location.href = data.url;
         }
       } else {
-        alert(data.error || "Stripe checkout failed");
+        toast.error(data.error || "Stripe checkout failed");
       }
     } catch (err: any) {
-      alert(`Stripe error: ${err.message}`);
+      toast.error(`Stripe error: ${err.message}`);
     } finally {
       setLoadingStripe(false);
     }
@@ -74,6 +76,12 @@ export function UnlockModal({ open, onOpenChange, onUnlockSuccess }: Props) {
       const res = await fetch("/api/checkout/razorpay", { method: "POST" });
       const data = await res.json();
 
+      if (data.error) {
+        toast.error(data.error);
+        setLoadingRazorpay(false);
+        return;
+      }
+
       if (data.isMock) {
         // Instant simulated verification for test environments
         const verifyRes = await fetch("/api/checkout/verify", {
@@ -82,9 +90,11 @@ export function UnlockModal({ open, onOpenChange, onUnlockSuccess }: Props) {
           body: JSON.stringify({ isMock: true, razorpay_order_id: data.orderId }),
         });
         if (verifyRes.ok) {
+          toast.success("Test order verified! Reading unlocked.");
           onUnlockSuccess();
           onOpenChange(false);
         }
+        setLoadingRazorpay(false);
         return;
       }
 
@@ -93,13 +103,16 @@ export function UnlockModal({ open, onOpenChange, onUnlockSuccess }: Props) {
         const script = document.createElement("script");
         script.src = "https://checkout.razorpay.com/v1/checkout.js";
         script.onload = () => triggerRazorpayModal(data);
+        script.onerror = () => {
+          toast.error("Failed to load Razorpay checkout SDK.");
+          setLoadingRazorpay(false);
+        };
         document.body.appendChild(script);
       } else {
         triggerRazorpayModal(data);
       }
     } catch (err: any) {
-      alert(`Razorpay error: ${err.message}`);
-    } finally {
+      toast.error(`Razorpay error: ${err.message}`);
       setLoadingRazorpay(false);
     }
   }
@@ -113,17 +126,30 @@ export function UnlockModal({ open, onOpenChange, onUnlockSuccess }: Props) {
       description: "Vedic Master Astrology Dossier",
       order_id: data.orderId,
       theme: { color: "#e0b35a" },
+      modal: {
+        ondismiss: function () {
+          setLoadingRazorpay(false);
+        },
+      },
       handler: async function (response: any) {
-        const verifyRes = await fetch("/api/checkout/verify", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(response),
-        });
-        if (verifyRes.ok) {
-          onUnlockSuccess();
-          onOpenChange(false);
-        } else {
-          alert("Payment signature verification failed.");
+        try {
+          const verifyRes = await fetch("/api/checkout/verify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(response),
+          });
+          if (verifyRes.ok) {
+            toast.success("Payment verified! Your Complete Vedic Dossier is unlocked.");
+            onUnlockSuccess();
+            onOpenChange(false);
+          } else {
+            const errData = await verifyRes.json();
+            toast.error(errData.error || "Payment signature verification failed.");
+          }
+        } catch (err: any) {
+          toast.error(`Verification error: ${err.message}`);
+        } finally {
+          setLoadingRazorpay(false);
         }
       },
     };
@@ -135,6 +161,7 @@ export function UnlockModal({ open, onOpenChange, onUnlockSuccess }: Props) {
   function handleTestUnlock() {
     setLoadingTest(true);
     setTimeout(() => {
+      toast.success("Demo unlock activated!");
       onUnlockSuccess();
       onOpenChange(false);
       setLoadingTest(false);

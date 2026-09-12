@@ -23,8 +23,7 @@ import { Button } from "@/components/ui/button";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { KundliMilanModal } from "@/components/milan/KundliMilanModal";
 import { createClient } from "@/lib/supabase/client";
-import { saveReading } from "@/lib/reading-store";
-import { calculateVedicChart } from "@/lib/vedic";
+import { saveReading, getLocalVaultCharts, removeLocalVaultChart } from "@/lib/reading-store";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { emptyAstrologyData, type StoredReading } from "@/types/astrology";
 
@@ -37,6 +36,7 @@ export interface VaultChartItem {
   city: string;
   chart_data: StoredReading["vedicChart"];
   reading_data?: StoredReading["reading"];
+  isUnlocked?: boolean;
   created_at: string;
 }
 
@@ -57,24 +57,7 @@ function deduplicateCharts(items: VaultChartItem[]): VaultChartItem[] {
 }
 
 function getChartSummary(chart: VaultChartItem) {
-  let cd = chart.chart_data;
-
-  // If chart_data is missing, calculate it on the fly using Vedic astronomical engine
-  if (!cd && chart.date_of_birth && chart.time_of_birth) {
-    try {
-      cd = calculateVedicChart({
-        dateOfBirth: chart.date_of_birth,
-        timeOfBirth: chart.time_of_birth,
-        latitude: 16.8433,
-        longitude: 74.6465,
-        timezoneOffsetHours: 5.5,
-        cityName: chart.city,
-      });
-      chart.chart_data = cd;
-    } catch (e) {
-      console.warn("On-the-fly chart calculation:", e);
-    }
-  }
+  const cd = chart.chart_data;
 
   const asc =
     cd?.ascendant?.signName ||
@@ -118,46 +101,76 @@ export default function VaultPage() {
   const supabase = createClient();
 
   useEffect(() => {
-    // Clear any obsolete local device storage as requested
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("cosmiclens:local_vault");
+    // Immediately display any locally generated charts
+    const local = getLocalVaultCharts();
+    if (local.length > 0) {
+      setCharts(deduplicateCharts(local));
     }
 
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user);
-      if (data.user) {
-        fetchCloudCharts();
-      } else {
-        setLoading(false);
-      }
+      fetchCombinedCharts(data.user);
     });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchCloudCharts();
-      } else {
-        setCharts([]);
-        setLoading(false);
-      }
+      fetchCombinedCharts(session?.user ?? null);
     });
 
     return () => subscription.unsubscribe();
   }, [supabase]);
 
-  async function fetchCloudCharts() {
+  async function fetchCombinedCharts(currentUser: SupabaseUser | null) {
     setLoading(true);
+    const localCharts = getLocalVaultCharts();
+
+    if (!currentUser) {
+      setCharts(deduplicateCharts(localCharts));
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch("/api/vault");
+      let cloudCharts: VaultChartItem[] = [];
       if (res.ok) {
         const data = await res.json();
-        const cloudCharts: VaultChartItem[] = data.charts || [];
-        setCharts(deduplicateCharts(cloudCharts));
+        cloudCharts = data.charts || [];
+      }
+
+      // Combine cloud and local charts
+      const merged = deduplicateCharts([...cloudCharts, ...localCharts]);
+      setCharts(merged);
+
+      // In background, sync any unsynced local charts to cloud
+      for (const lc of localCharts) {
+        const alreadyInCloud = cloudCharts.some(
+          (cc) =>
+            (cc.name || "").toLowerCase() === (lc.name || "").toLowerCase() &&
+            cc.date_of_birth === lc.date_of_birth &&
+            cc.time_of_birth === lc.time_of_birth
+        );
+        if (!alreadyInCloud) {
+          fetch("/api/vault", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: lc.name,
+              relationship: lc.relationship || "Self",
+              date_of_birth: lc.date_of_birth,
+              time_of_birth: lc.time_of_birth,
+              city: lc.city,
+              chart_data: lc.chart_data,
+              reading_data: lc.reading_data,
+            }),
+          }).catch(() => {});
+        }
       }
     } catch (err) {
-      console.warn("Cloud vault fetch error:", err);
+      console.warn("Cloud vault fetch error, displaying local cache:", err);
+      setCharts(deduplicateCharts(localCharts));
     } finally {
       setLoading(false);
     }
@@ -167,6 +180,7 @@ export default function VaultPage() {
     if (!confirm("Are you sure you want to remove this chart from your vault?")) return;
     setDeletingId(id);
     try {
+      removeLocalVaultChart(id);
       if (user) {
         await fetch(`/api/vault?id=${id}`, { method: "DELETE" }).catch(() => {});
       }
@@ -178,13 +192,14 @@ export default function VaultPage() {
     }
   }
 
-  function handleOpenReading(chart: VaultChartItem) {
+  async function handleOpenReading(chart: VaultChartItem) {
     let readingData = chart.reading_data;
     let chartData = chart.chart_data;
 
-    // Ensure chart is computed
+    // Ensure chart is computed if missing
     if (!chartData && chart.date_of_birth && chart.time_of_birth) {
       try {
+        const { calculateVedicChart } = await import("@/lib/vedic");
         chartData = calculateVedicChart({
           dateOfBirth: chart.date_of_birth,
           timeOfBirth: chart.time_of_birth,
@@ -229,7 +244,7 @@ export default function VaultPage() {
       reading: readingData,
       astrologyData: emptyAstrologyData,
       vedicChart: chartData,
-      isUnlocked: true,
+      isUnlocked: chart.isUnlocked ?? false,
       generatedAt: chart.created_at,
     };
 
