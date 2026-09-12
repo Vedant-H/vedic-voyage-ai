@@ -41,7 +41,9 @@ export function cleanProse(input: unknown): string {
       text.includes('"personality"') ||
       text.includes('"content"') ||
       text.includes('"overview"') ||
-      text.includes('"summary"'))
+      text.includes('"summary"') ||
+      text.includes('"response"') ||
+      text.includes('"answer"'))
   ) {
     try {
       const parsed = JSON.parse(text);
@@ -49,9 +51,11 @@ export function cleanProse(input: unknown): string {
       if (parsed.summary?.overview) return cleanProse(parsed.summary.overview);
       if (parsed.content) return cleanProse(parsed.content);
       if (parsed.overview) return cleanProse(parsed.overview);
+      if (typeof parsed.response === "string") return cleanProse(parsed.response);
+      if (typeof parsed.answer === "string") return cleanProse(parsed.answer);
     } catch {
       // If parsing fails, try to extract value via regex
-      const contentMatch = text.match(/"(?:content|overview)"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+      const contentMatch = text.match(/"(?:content|overview|response|answer)"\s*:\s*"((?:[^"\\]|\\.)*)"/);
       if (contentMatch && contentMatch[1]) {
         return contentMatch[1].replace(/\\n/g, "\n").replace(/\\"/g, '"');
       }

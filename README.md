@@ -1,3 +1,9 @@
+#ISSUE
+
+ yes, the chat is “getting” some data — but only the summary version of the reading, and definitely not the chart/transit layer the answer is trying to reference.
+
+
+
 # Cosmic Insights AI
 
 Build a complete, production-quality AI-powered Vedic Astrology website called CosmicLens AI.

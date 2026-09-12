@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { AiError, callGemini } from "@/lib/gemini.server";
 import { buildChatSystemPrompt } from "@/lib/prompts";
+import { cleanProse } from "@/lib/utils";
 
 const chatSchema = z.object({
   question: z.string().min(2).max(600),
@@ -50,7 +51,8 @@ export async function POST(req: Request) {
       1200,
     );
 
-    return NextResponse.json({ answer, isCrisis: false });
+    const cleanAnswer = cleanProse(answer);
+    return NextResponse.json({ answer: cleanAnswer, isCrisis: false });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues[0]?.message || "Invalid input" }, { status: 400 });

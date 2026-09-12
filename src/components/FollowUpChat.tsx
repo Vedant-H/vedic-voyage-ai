@@ -14,6 +14,7 @@ import {
   VolumeX,
 } from "lucide-react";
 
+import { cleanProse } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -29,6 +30,41 @@ const SUGGESTIONS = [
   "Which strengths should I lean on most?",
   "How can I improve my relationships?",
 ];
+
+function normalizeChatContent(content: string) {
+  let text = cleanProse(content);
+
+  // unwrap common JSON object wrappers from chat APIs that emit a nested payload key
+  if (text.startsWith("{") && text.includes("\"response\"") && text.includes("\"answer\"")) {
+    try {
+      const parsed = JSON.parse(text) as Record<string, unknown>;
+      if (typeof parsed.response === "string") {
+        text = parsed.response;
+      } else if (typeof parsed.answer === "string") {
+        text = parsed.answer;
+      }
+    } catch {
+      // fall through to plain text cleanup below
+    }
+  }
+
+  // normalize markdown-like tokens into a clean plain-text slice
+  text = cleanProse(text)
+    .replace(/```(?:json)?\s*/gi, "")
+    .replace(/```/g, "")
+    .replace(/^#{1,6}\s*/gm, "")
+    .replace(/^\s*[-*+]\s+/gm, "• ")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/__(.*?)__/g, "$1")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1")
+    .replace(/\\n/g, "\n")
+    .replace(/\\"/g, '"')
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+  return text;
+}
 
 export function FollowUpChat({ context }: { context: string }) {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -137,11 +173,13 @@ export function FollowUpChat({ context }: { context: string }) {
       if (!res.ok) {
         throw new Error(data.error || "Failed to get answer");
       }
+
+      const answer = normalizeChatContent(data.answer || "");
       setMessages((m) => [
         ...m,
         {
           role: "assistant",
-          content: data.answer,
+          content: answer,
           isCrisis: data.isCrisis,
           crisisResources: data.crisisResources,
         },
@@ -221,7 +259,7 @@ export function FollowUpChat({ context }: { context: string }) {
                   </div>
                 )}
 
-                {m.content}
+                {normalizeChatContent(m.content)}
 
                 {/* Direct click-to-call helpline cards */}
                 {m.crisisResources && m.crisisResources.length > 0 && (
