@@ -26,6 +26,19 @@ export function clearReading() {
   sessionStorage.removeItem(KEY);
 }
 
+export function markReadingUnlocked(): StoredReading | null {
+  const current = loadReading();
+  if (!current) return null;
+  const updated: StoredReading = {
+    ...current,
+    isUnlocked: true,
+    plan: "premium",
+    unlockedAt: new Date().toISOString(),
+  };
+  saveReading(updated);
+  return updated;
+}
+
 /** Keeps the chat context small and predictable. */
 export function buildChatContext(stored: StoredReading): string {
   const { birth, reading } = stored;
