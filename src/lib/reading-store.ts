@@ -1,11 +1,18 @@
 import type { StoredReading } from "@/types/astrology";
 
 const KEY = "cosmiclens:reading";
+const LOCAL_BACKUP_KEY = "cosmiclens:current_reading";
+const VAULT_CACHE_KEY = "cosmiclens:vault_charts";
 
 export function saveReading(value: StoredReading) {
   if (typeof window === "undefined") return;
   try {
-    sessionStorage.setItem(KEY, JSON.stringify(value));
+    const raw = JSON.stringify(value);
+    sessionStorage.setItem(KEY, raw);
+    localStorage.setItem(LOCAL_BACKUP_KEY, raw);
+
+    // Automatically add to local vault cache so reports are never lost
+    saveToLocalVaultFromReading(value);
   } catch {
     /* storage unavailable */
   }
@@ -14,8 +21,18 @@ export function saveReading(value: StoredReading) {
 export function loadReading(): StoredReading | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = sessionStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as StoredReading) : null;
+    const sessionRaw = sessionStorage.getItem(KEY);
+    if (sessionRaw) {
+      return JSON.parse(sessionRaw) as StoredReading;
+    }
+    const localRaw = localStorage.getItem(LOCAL_BACKUP_KEY);
+    if (localRaw) {
+      const parsed = JSON.parse(localRaw) as StoredReading;
+      // Reseed session
+      sessionStorage.setItem(KEY, localRaw);
+      return parsed;
+    }
+    return null;
   } catch {
     return null;
   }
@@ -24,6 +41,83 @@ export function loadReading(): StoredReading | null {
 export function clearReading() {
   if (typeof window === "undefined") return;
   sessionStorage.removeItem(KEY);
+  localStorage.removeItem(LOCAL_BACKUP_KEY);
+}
+
+export function markReadingUnlocked(): StoredReading | null {
+  const current = loadReading();
+  if (!current) return null;
+  const updated: StoredReading = {
+    ...current,
+    isUnlocked: true,
+    plan: "premium",
+    unlockedAt: new Date().toISOString(),
+  };
+  saveReading(updated);
+  return updated;
+}
+
+// Local Vault Cache helpers for guaranteed report persistence across sessions
+export function getLocalVaultCharts(): any[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(VAULT_CACHE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveToLocalVaultFromReading(stored: StoredReading) {
+  if (typeof window === "undefined") return;
+  try {
+    const list = getLocalVaultCharts();
+    const name = stored.birth.name || "My Chart";
+    const dob = stored.birth.dateOfBirth;
+    const tob = stored.birth.timeOfBirth;
+    const place = [stored.birth.birthCity, stored.birth.birthState, stored.birth.birthCountry]
+      .filter(Boolean)
+      .join(", ");
+
+    // Check if duplicate already exists
+    const existingIndex = list.findIndex(
+      (c: any) =>
+        (c.name || "").toLowerCase() === name.toLowerCase() &&
+        c.date_of_birth === dob &&
+        c.time_of_birth === tob
+    );
+
+    const chartItem = {
+      id: existingIndex >= 0 ? list[existingIndex].id : `local_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      name,
+      relationship: "Self",
+      date_of_birth: dob,
+      time_of_birth: tob,
+      city: place,
+      chart_data: stored.vedicChart,
+      reading_data: stored.reading,
+      isUnlocked: stored.isUnlocked || false,
+      created_at: existingIndex >= 0 ? list[existingIndex].created_at : new Date().toISOString(),
+    };
+
+    if (existingIndex >= 0) {
+      list[existingIndex] = chartItem;
+    } else {
+      list.unshift(chartItem);
+    }
+
+    localStorage.setItem(VAULT_CACHE_KEY, JSON.stringify(list));
+  } catch (err) {
+    console.warn("Failed to cache in local vault:", err);
+  }
+}
+
+export function removeLocalVaultChart(id: string) {
+  if (typeof window === "undefined") return;
+  try {
+    const list = getLocalVaultCharts().filter((c: any) => c.id !== id);
+    localStorage.setItem(VAULT_CACHE_KEY, JSON.stringify(list));
+  } catch {}
 }
 
 /** Keeps the chat context small and predictable. */

@@ -8,6 +8,9 @@ export interface BirthDetails {
   currentLocation?: string;
   gender: string;
   interests: string[];
+  latitude?: number;
+  longitude?: number;
+  timezoneOffsetHours?: number;
 }
 
 /** Placeholder for a future astrology calculation engine. */
@@ -74,6 +77,10 @@ export interface StoredReading {
   birth: BirthDetails;
   reading: AstrologyReading;
   astrologyData: AstrologyData;
+  vedicChart?: any;
+  isUnlocked?: boolean;
+  plan?: "free" | "premium";
+  unlockedAt?: string;
   generatedAt: string;
 }
 
