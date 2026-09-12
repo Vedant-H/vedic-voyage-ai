@@ -14,36 +14,102 @@ export class AiError extends Error {
 }
 
 /**
- * Calls Gemini directly via Google AI Studio API or through the Lovable AI gateway.
- * The API key is read at call time on the server and never leaves the server.
+ * Discovers and collects all Gemini API keys configured in the environment.
+ * Supports:
+ * - GEMINI_API_KEY
+ * - GEMINI_API_KEY_2, GEMINI_API_KEY_3, GEMINI_API_KEY_N
+ * - Comma-separated list in GEMINI_API_KEYS
  */
-export async function callGemini(messages: GatewayMessage[], maxTokens = 8000): Promise<string> {
-  const lovableKey = process.env["LOVABLE_API_KEY"];
-  const geminiKey = process.env["GEMINI_API_KEY"];
-  const apiKey = lovableKey || geminiKey;
+export function getGeminiApiKeys(): string[] {
+  const keys: string[] = [];
 
-  if (!apiKey) {
-    throw new AiError("The astrology engine is not configured yet. Please provide GEMINI_API_KEY in .env.", 500);
+  // Comma-separated env
+  if (process.env.GEMINI_API_KEYS) {
+    const list = process.env.GEMINI_API_KEYS.split(",").map((k) => k.trim());
+    for (const k of list) {
+      if (k && !keys.includes(k)) keys.push(k);
+    }
   }
 
-  // If we have a direct Google Gemini API key (typically starts with AIza) or no Lovable key
-  const isDirectGemini = Boolean(geminiKey && (!lovableKey || geminiKey.startsWith("AIza")));
-
-  if (isDirectGemini && geminiKey) {
-    return callDirectGoogleGemini(geminiKey, messages, maxTokens);
+  // Numbered or individual env vars
+  const entries = Object.entries(process.env).sort(([a], [b]) => a.localeCompare(b));
+  for (const [k, v] of entries) {
+    if (k.startsWith("GEMINI_API_KEY") && k !== "GEMINI_API_KEYS" && typeof v === "string") {
+      const trimmed = v.trim();
+      if (trimmed && !keys.includes(trimmed)) {
+        keys.push(trimmed);
+      }
+    }
   }
 
-  return callLovableGateway(apiKey, messages, maxTokens);
+  return keys;
+}
+
+let keyRoundRobinIndex = 0;
+
+/**
+ * Returns the next Gemini API key in round-robin sequence.
+ */
+export function getNextGeminiApiKey(): string {
+  const keys = getGeminiApiKeys();
+  if (keys.length === 0) {
+    throw new AiError("No GEMINI_API_KEY found in environment secrets.", 500);
+  }
+  const key = keys[keyRoundRobinIndex % keys.length];
+  keyRoundRobinIndex = (keyRoundRobinIndex + 1) % keys.length;
+  return key;
 }
 
 /**
- * Streams tokens from Gemini using Server-Sent Events (SSE).
+ * Calls Gemini with Round-Robin key rotation and automatic failover across all configured keys.
+ */
+export async function callGemini(messages: GatewayMessage[], maxTokens = 16000): Promise<string> {
+  const keys = getGeminiApiKeys();
+  const lovableKey = process.env["LOVABLE_API_KEY"];
+
+  if (keys.length === 0 && !lovableKey) {
+    throw new AiError("The astrology engine is not configured yet. Please provide GEMINI_API_KEY in .env.", 500);
+  }
+
+  if (keys.length > 0) {
+    const startIndex = keyRoundRobinIndex;
+    let lastError: any = null;
+
+    // Attempt round-robin across all available keys in the pool
+    for (let attempt = 0; attempt < keys.length; attempt++) {
+      const idx = (startIndex + attempt) % keys.length;
+      const apiKey = keys[idx];
+      keyRoundRobinIndex = (idx + 1) % keys.length;
+
+      try {
+        console.log(`[Gemini Engine] Dispatching request with API key #${idx + 1} of ${keys.length}`);
+        return await callDirectGoogleGemini(apiKey, messages, maxTokens);
+      } catch (err: any) {
+        lastError = err;
+        // If rate-limited (429), quota-limited (403), or service unavailable (503), failover to next key
+        if (err.status === 429 || err.status === 403 || err.status === 503) {
+          console.warn(`[Gemini Engine] Key #${idx + 1} encountered status ${err.status}. Failing over to next key...`);
+          continue;
+        }
+        throw err;
+      }
+    }
+
+    if (lastError) throw lastError;
+  }
+
+  return callLovableGateway(lovableKey!, messages, maxTokens);
+}
+
+/**
+ * Streams tokens from Gemini using Server-Sent Events (SSE) with Round-Robin key selection.
  */
 export async function* streamGemini(
   messages: GatewayMessage[],
   maxTokens = 8000,
 ): AsyncGenerator<string> {
-  const geminiKey = process.env["GEMINI_API_KEY"];
+  const keys = getGeminiApiKeys();
+  const geminiKey = keys.length > 0 ? getNextGeminiApiKey() : process.env["GEMINI_API_KEY"];
   const model = process.env["GEMINI_MODEL"] || "gemini-2.5-flash";
 
   if (!geminiKey) {
@@ -244,7 +310,7 @@ async function callLovableGateway(
   return text;
 }
 
-/** Safely extracts JSON from a model response that may contain fences or prose. */
+/** Safely extracts JSON from a model response that may contain fences, prose, or slight truncation. */
 export function parseJsonLoose<T>(raw: string): T | null {
   if (!raw) return null;
   let cleaned = raw.trim();
@@ -259,6 +325,12 @@ export function parseJsonLoose<T>(raw: string): T | null {
   const end = cleaned.lastIndexOf("}");
   if (start !== -1 && end > start) {
     candidates.push(cleaned.slice(start, end + 1));
+  }
+
+  // Also try repairing unclosed brackets/quotes
+  candidates.push(repairJson(cleaned));
+  if (start !== -1) {
+    candidates.push(repairJson(cleaned.slice(start)));
   }
 
   for (const candidate of candidates) {
@@ -277,4 +349,50 @@ export function parseJsonLoose<T>(raw: string): T | null {
     }
   }
   return null;
+}
+
+function repairJson(str: string): string {
+  let s = str.trim();
+  let inString = false;
+  let escaped = false;
+  const stack: string[] = [];
+
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (ch === "\\") {
+      escaped = true;
+      continue;
+    }
+    if (ch === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (!inString) {
+      if (ch === "{" || ch === "[") {
+        stack.push(ch);
+      } else if (ch === "}") {
+        if (stack.length && stack[stack.length - 1] === "{") stack.pop();
+      } else if (ch === "]") {
+        if (stack.length && stack[stack.length - 1] === "[") stack.pop();
+      }
+    }
+  }
+
+  if (inString) {
+    s += '"';
+  }
+
+  s = s.replace(/,\s*$/, "");
+
+  while (stack.length > 0) {
+    const last = stack.pop();
+    if (last === "{") s += "}";
+    else if (last === "[") s += "]";
+  }
+
+  return s;
 }

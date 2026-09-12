@@ -20,15 +20,18 @@ import { PlanetCard } from "@/components/PlanetCard";
 import { ReadingHeader } from "@/components/ReadingHeader";
 import { ReadingSection } from "@/components/ReadingSection";
 import { Button } from "@/components/ui/button";
-import { buildChatContext, clearReading, loadReading } from "@/lib/reading-store";
+import { buildChatContext, clearReading, loadReading, markReadingUnlocked } from "@/lib/reading-store";
 import { KundliViewer } from "@/components/charts/KundliViewer";
 import { CosmicWeatherBar } from "@/components/CosmicWeatherBar";
+import { UnlockModal } from "@/components/monetization/UnlockModal";
+import { PremiumPaywallBanner } from "@/components/monetization/PremiumPaywallBanner";
 import type { StoredReading } from "@/types/astrology";
 
 export default function ReadingPage() {
   const router = useRouter();
   const [stored, setStored] = useState<StoredReading | null>(null);
   const [ready, setReady] = useState(false);
+  const [unlockOpen, setUnlockOpen] = useState(false);
 
   useEffect(() => {
     const loaded = loadReading();
@@ -75,6 +78,7 @@ export default function ReadingPage() {
               clearReading();
               router.push("/");
             }}
+            onUnlock={() => setUnlockOpen(true)}
           />
 
           {stored.vedicChart && <CosmicWeatherBar chart={stored.vedicChart} />}
@@ -118,16 +122,20 @@ export default function ReadingPage() {
             </section>
           )}
 
-          {/* Dossier Badge */}
-          <div className="flex items-center justify-between rounded-2xl border border-[var(--gold)]/40 bg-[var(--gold)]/10 px-5 py-3 text-sm text-[var(--gold)]">
-            <div className="flex items-center gap-2 font-medium">
-              <Crown className="size-4" />
-              <span>Complete Vedic Master Dossier</span>
+          {/* Dossier Badge or Paywall Banner */}
+          {stored.isUnlocked ? (
+            <div className="flex items-center justify-between rounded-2xl border border-emerald-500/40 bg-emerald-500/10 px-5 py-3 text-sm text-emerald-400">
+              <div className="flex items-center gap-2 font-medium">
+                <Crown className="size-4" />
+                <span>Complete Vedic Master Dossier · Unlocked</span>
+              </div>
+              <span className="text-xs uppercase tracking-wider text-emerald-400/80">
+                Lifetime Parashari Access
+              </span>
             </div>
-            <span className="text-xs uppercase tracking-wider text-muted-foreground">
-              Full Parashari Access
-            </span>
-          </div>
+          ) : (
+            <PremiumPaywallBanner onUnlockClick={() => setUnlockOpen(true)} />
+          )}
 
           {/* All 7 Detailed Sections */}
           <div className="space-y-4">
@@ -140,24 +148,70 @@ export default function ReadingPage() {
                 icon={s.icon}
                 content={s.content}
                 defaultOpen={i === 0}
+                isLocked={!stored.isUnlocked && i > 0}
+                onUnlock={() => setUnlockOpen(true)}
               />
             ))}
           </div>
 
           {/* Practical Guidance & Remedies */}
           {reading.guidance.length > 0 && (
-            <section className="glass-panel print-plain rounded-3xl p-6 sm:p-8">
-              <h2 className="font-display text-2xl">Practical guidance & BPHS remedies</h2>
-              <ul className="mt-5 grid gap-4 sm:grid-cols-2">
-                {reading.guidance.map((g, i) => (
-                  <li key={`${g.title}-${i}`} className="rounded-2xl border border-border bg-secondary/30 p-4">
-                    <p className="text-sm font-medium">{g.title}</p>
-                    <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                      {g.description}
+            <section className="glass-panel print-plain relative overflow-hidden rounded-3xl p-6 sm:p-8">
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="font-display text-2xl">Practical guidance & BPHS remedies</h2>
+                {!stored.isUnlocked && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-[var(--gold)]/30 bg-[var(--gold)]/10 px-2.5 py-1 text-xs font-semibold text-[var(--gold)]">
+                    <Lock className="size-3.5" />
+                    Premium Remedies
+                  </span>
+                )}
+              </div>
+
+              {!stored.isUnlocked ? (
+                <div className="relative">
+                  <ul className="grid gap-4 sm:grid-cols-2 opacity-25 select-none blur-[2px] pointer-events-none">
+                    {reading.guidance.map((g, i) => (
+                      <li key={`${g.title}-${i}`} className="rounded-2xl border border-border bg-secondary/30 p-4">
+                        <p className="text-sm font-medium">{g.title}</p>
+                        <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                          {g.description}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-gradient-to-t from-background/95 via-background/85 to-transparent rounded-2xl">
+                    <div className="flex size-12 items-center justify-center rounded-2xl bg-[var(--gold)]/15 text-[var(--gold)] border border-[var(--gold)]/30 mb-3 shadow-lg">
+                      <Lock className="size-5" />
+                    </div>
+                    <h3 className="font-display text-xl font-bold text-foreground">
+                      Classical Vedic Remedies Locked
+                    </h3>
+                    <p className="mt-1.5 text-xs sm:text-sm text-muted-foreground max-w-md">
+                      Unlock authentic BPHS planetary remedies — Beej Mantras, gemstone recommendations, fasting protocols, and Daana guidelines tailored to your lagna and dasha.
                     </p>
-                  </li>
-                ))}
-              </ul>
+                    <Button
+                      size="default"
+                      onClick={() => setUnlockOpen(true)}
+                      className="mt-4 bg-[var(--gold)] text-black hover:bg-[var(--gold)]/90 font-semibold text-xs sm:text-sm shadow-xl"
+                    >
+                      <Sparkles className="size-3.5 mr-2" />
+                      Unlock Classical Remedies (₹1,499)
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <ul className="mt-5 grid gap-4 sm:grid-cols-2">
+                  {reading.guidance.map((g, i) => (
+                    <li key={`${g.title}-${i}`} className="rounded-2xl border border-border bg-secondary/30 p-4">
+                      <p className="text-sm font-medium">{g.title}</p>
+                      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                        {g.description}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </section>
           )}
 
@@ -169,6 +223,15 @@ export default function ReadingPage() {
           </p>
         </div>
       </div>
+
+      <UnlockModal
+        open={unlockOpen}
+        onOpenChange={setUnlockOpen}
+        onUnlockSuccess={() => {
+          const updated = markReadingUnlocked();
+          if (updated) setStored(updated);
+        }}
+      />
     </main>
   );
 }

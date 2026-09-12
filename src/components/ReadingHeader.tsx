@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { motion } from "motion/react";
-import { BookmarkPlus, Check, Download, Loader2, RotateCcw, Share2, Sparkles } from "lucide-react";
+import { BookmarkPlus, Check, Crown, Download, Loader2, RotateCcw, Share2, Sparkles } from "lucide-react";
 
 import dynamic from "next/dynamic";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { createClient } from "@/lib/supabase/client";
+import { saveToLocalVaultFromReading } from "@/lib/reading-store";
 import { cleanProse } from "@/lib/utils";
 import type { StoredReading } from "@/types/astrology";
 
@@ -19,9 +21,10 @@ const PdfDownloadButton = dynamic(
 interface Props {
   stored: StoredReading;
   onRestart: () => void;
+  onUnlock?: () => void;
 }
 
-export function ReadingHeader({ stored, onRestart }: Props) {
+export function ReadingHeader({ stored, onRestart, onUnlock }: Props) {
   const { birth, reading, generatedAt } = stored;
   const place = [birth.birthCity, birth.birthState, birth.birthCountry].filter(Boolean).join(", ");
   
@@ -39,6 +42,9 @@ export function ReadingHeader({ stored, onRestart }: Props) {
 
     setSaving(true);
     try {
+      // Always guarantee local vault persistence first
+      saveToLocalVaultFromReading(stored);
+
       const res = await fetch("/api/vault", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -53,14 +59,19 @@ export function ReadingHeader({ stored, onRestart }: Props) {
         }),
       });
 
-      if (res.ok) {
-        setSaved(true);
+      const data = await res.json().catch(() => ({}));
+
+      setSaved(true);
+      if (res.ok && !data.warning) {
+        toast.success("Saved to your Cosmic Vault!");
       } else {
-        const data = await res.json();
-        alert(data.error || "Failed to save to vault");
+        toast.info("Saved to your local vault! (Run schema.sql in Supabase to sync to cloud)");
       }
     } catch (err: any) {
       console.warn("Vault save error:", err.message);
+      saveToLocalVaultFromReading(stored);
+      setSaved(true);
+      toast.info("Saved to local vault cache.");
     } finally {
       setSaving(false);
     }
@@ -133,7 +144,18 @@ export function ReadingHeader({ stored, onRestart }: Props) {
       </dl>
 
       <div className="mt-8 flex flex-wrap items-center gap-3 no-print">
-        <PdfDownloadButton stored={stored} />
+        {!stored.isUnlocked && onUnlock && (
+          <Button
+            size="lg"
+            onClick={onUnlock}
+            className="bg-[var(--gold)] text-black hover:bg-[var(--gold)]/90 font-semibold shadow-lg transition-all"
+          >
+            <Crown className="size-4 mr-2" />
+            Unlock Dossier (₹1,499)
+          </Button>
+        )}
+
+        <PdfDownloadButton stored={stored} onUnlock={onUnlock} />
 
         <Button
           variant={saved ? "secondary" : "default"}
