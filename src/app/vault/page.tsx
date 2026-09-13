@@ -6,9 +6,11 @@ import { useRouter } from "next/navigation";
 import {
   Calendar,
   Compass,
+  Crown,
   FolderLock,
   Heart,
   Loader2,
+  Lock,
   LogIn,
   MapPin,
   Moon,
@@ -23,7 +25,12 @@ import { Button } from "@/components/ui/button";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { KundliMilanModal } from "@/components/milan/KundliMilanModal";
 import { createClient } from "@/lib/supabase/client";
-import { saveReading, getLocalVaultCharts, removeLocalVaultChart } from "@/lib/reading-store";
+import {
+  saveReading,
+  getLocalVaultCharts,
+  removeLocalVaultChart,
+  isAccountOrProfileUnlocked,
+} from "@/lib/reading-store";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { emptyAstrologyData, type StoredReading } from "@/types/astrology";
 
@@ -244,7 +251,10 @@ export default function VaultPage() {
       reading: readingData,
       astrologyData: emptyAstrologyData,
       vedicChart: chartData,
-      isUnlocked: chart.isUnlocked ?? false,
+      isUnlocked: isAccountOrProfileUnlocked({
+        name: chart.name,
+        dateOfBirth: chart.date_of_birth,
+      }),
       generatedAt: chart.created_at,
     };
 
@@ -379,6 +389,10 @@ export default function VaultPage() {
                 <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
                   {filteredCharts.map((chart) => {
                     const { asc, moon, nakshatra, dasha } = getChartSummary(chart);
+                    const isUnlocked = isAccountOrProfileUnlocked({
+                      name: chart.name,
+                      dateOfBirth: chart.date_of_birth,
+                    });
 
                     return (
                       <div
@@ -388,9 +402,20 @@ export default function VaultPage() {
                         <div>
                           <div className="flex items-start justify-between gap-2">
                             <div>
-                              <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-secondary text-primary border border-primary/20">
-                                {chart.relationship || "Self"}
-                              </span>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-secondary text-primary border border-primary/20">
+                                  {chart.relationship || "Self"}
+                                </span>
+                                {isUnlocked ? (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                                    <Crown className="size-3" /> Master Dossier
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-secondary/80 text-muted-foreground border border-border/50">
+                                    <Lock className="size-3" /> Free Preview
+                                  </span>
+                                )}
+                              </div>
                               <h3 className="mt-2 font-display text-2xl font-semibold tracking-wide text-foreground">
                                 {chart.name || "Nameless Chart"}
                               </h3>
@@ -448,13 +473,13 @@ export default function VaultPage() {
                         {/* Actions */}
                         <div className="mt-5 pt-3 border-t border-border/40 flex items-center justify-between gap-2">
                           <Button
-                            variant="secondary"
+                            variant={isUnlocked ? "secondary" : "outline"}
                             size="sm"
-                            className="text-xs flex-1"
+                            className={`text-xs flex-1 ${!isUnlocked ? "border-[var(--gold)]/40 hover:bg-[var(--gold)]/10 text-foreground" : ""}`}
                             onClick={() => handleOpenReading(chart)}
                           >
                             <Sparkles className="size-3.5 mr-1 text-[var(--gold)]" />
-                            View Reading
+                            {isUnlocked ? "View Reading" : "Preview Reading"}
                           </Button>
 
                           <Button
