@@ -20,7 +20,15 @@ import { PlanetCard } from "@/components/PlanetCard";
 import { ReadingHeader } from "@/components/ReadingHeader";
 import { ReadingSection } from "@/components/ReadingSection";
 import { Button } from "@/components/ui/button";
-import { buildChatContext, clearReading, loadReading, markReadingUnlocked } from "@/lib/reading-store";
+import {
+  buildChatContext,
+  clearReading,
+  isAccountOrProfileUnlocked,
+  loadReading,
+  markProfileUnlocked,
+  markReadingUnlocked,
+  saveReading,
+} from "@/lib/reading-store";
 import { KundliViewer } from "@/components/charts/KundliViewer";
 import { CosmicWeatherBar } from "@/components/CosmicWeatherBar";
 import { UnlockModal } from "@/components/monetization/UnlockModal";
@@ -34,9 +42,24 @@ export default function ReadingPage() {
   const [unlockOpen, setUnlockOpen] = useState(false);
 
   useEffect(() => {
-    const loaded = loadReading();
-    setStored(loaded);
-    setReady(true);
+    function checkUnlockAndLoad() {
+      const loaded = loadReading();
+
+      if (loaded) {
+        const isUnlocked = isAccountOrProfileUnlocked({
+          name: loaded.birth?.name,
+          dateOfBirth: loaded.birth?.dateOfBirth,
+        });
+
+        loaded.isUnlocked = isUnlocked;
+        loaded.plan = isUnlocked ? "premium" : "free";
+      }
+
+      setStored(loaded ? { ...loaded } : null);
+      setReady(true);
+    }
+
+    checkUnlockAndLoad();
   }, []);
 
   if (!ready) return <div className="min-h-screen bg-background" />;
@@ -94,31 +117,120 @@ export default function ReadingPage() {
 
           {reading.planetaryInsights.length > 0 && (
             <section>
-              <h2 className="mb-4 font-display text-2xl">Planetary influences</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-display text-2xl">Planetary influences</h2>
+                {!stored.isUnlocked && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-[var(--gold)]/30 bg-[var(--gold)]/10 px-2.5 py-0.5 text-xs font-medium text-[var(--gold)]">
+                    <Lock className="size-3" /> Preview (2 of {reading.planetaryInsights.length})
+                  </span>
+                )}
+              </div>
               <div className="-mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-3 print:mx-0 print:grid print:gap-3 print:overflow-visible print:px-0">
-                {reading.planetaryInsights.map((insight, i) => (
+                {(stored.isUnlocked
+                  ? reading.planetaryInsights
+                  : reading.planetaryInsights.slice(0, 2)
+                ).map((insight, i) => (
                   <PlanetCard key={`${insight.planet}-${i}`} insight={insight} index={i} />
                 ))}
+
+                {!stored.isUnlocked && (
+                  <div className="flex shrink-0 snap-start flex-col justify-between rounded-3xl border border-[var(--gold)]/30 bg-gradient-to-b from-[var(--gold)]/10 via-background/90 to-background/95 p-6 sm:p-7 min-w-[280px] max-w-[320px] text-center shadow-lg">
+                    <div>
+                      <div className="mx-auto flex size-10 items-center justify-center rounded-2xl bg-[var(--gold)]/20 text-[var(--gold)] border border-[var(--gold)]/30 mb-3">
+                        <Lock className="size-5" />
+                      </div>
+                      <h3 className="font-display text-lg font-bold text-foreground">
+                        {Math.max(0, reading.planetaryInsights.length - 2)} More Planets Locked
+                      </h3>
+                      <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
+                        Mars, Mercury, Jupiter, Venus, Saturn, Rahu & Ketu placements, dignity, and degrees.
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => setUnlockOpen(true)}
+                      className="mt-4 bg-[var(--gold)] text-black hover:bg-[var(--gold)]/90 font-semibold text-xs shadow-md"
+                    >
+                      <Sparkles className="size-3.5 mr-1" /> Unlock Planets (₹1,499)
+                    </Button>
+                  </div>
+                )}
               </div>
             </section>
           )}
 
           {reading.houseInsights.length > 0 && (
             <section className="glass-panel print-plain rounded-3xl p-6 sm:p-8">
-              <h2 className="font-display text-2xl">Houses & life areas</h2>
-              <dl className="mt-5 space-y-4">
-                {reading.houseInsights.map((h, i) => (
-                  <div key={`${h.house}-${i}`} className="border-t border-border pt-4 first:border-0 first:pt-0">
-                    <dt className="text-sm font-medium">
-                      {h.house}
-                      {h.area ? ` · ${h.area}` : ""}
-                    </dt>
-                    <dd className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                      {h.interpretation}
-                    </dd>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-display text-2xl">Houses & life areas</h2>
+                {!stored.isUnlocked && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-[var(--gold)]/30 bg-[var(--gold)]/10 px-2.5 py-0.5 text-xs font-medium text-[var(--gold)]">
+                    <Lock className="size-3" /> House 1 Preview
+                  </span>
+                )}
+              </div>
+
+              {stored.isUnlocked ? (
+                <dl className="mt-5 space-y-4">
+                  {reading.houseInsights.map((h, i) => (
+                    <div key={`${h.house}-${i}`} className="border-t border-border pt-4 first:border-0 first:pt-0">
+                      <dt className="text-sm font-medium">
+                        {h.house}
+                        {h.area ? ` · ${h.area}` : ""}
+                      </dt>
+                      <dd className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                        {h.interpretation}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              ) : (
+                <div className="mt-3 space-y-4">
+                  {/* House 1 preview (unlocked) */}
+                  {reading.houseInsights.slice(0, 1).map((h, i) => (
+                    <div key={`${h.house}-${i}`} className="border-b border-border/60 pb-4">
+                      <dt className="text-sm font-medium text-[var(--gold)]">
+                        {h.house}
+                        {h.area ? ` · ${h.area}` : ""} (Preview)
+                      </dt>
+                      <dd className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                        {h.interpretation}
+                      </dd>
+                    </div>
+                  ))}
+
+                  {/* Houses 2-12 blurred teaser */}
+                  <div className="relative mt-4 overflow-hidden rounded-2xl border border-border/80 bg-background/50">
+                    <dl className="space-y-4 p-5 opacity-15 select-none blur-[3px] pointer-events-none">
+                      {reading.houseInsights.slice(1, 4).map((h, i) => (
+                        <div key={`${h.house}-${i}`} className="border-t border-border pt-4 first:border-0 first:pt-0">
+                          <dt className="text-sm font-medium">{h.house}{h.area ? ` · ${h.area}` : ""}</dt>
+                          <dd className="mt-1 text-sm">{h.interpretation}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-gradient-to-t from-background/95 via-background/85 to-transparent">
+                      <div className="flex size-10 items-center justify-center rounded-2xl bg-[var(--gold)]/15 text-[var(--gold)] border border-[var(--gold)]/30 mb-2 shadow-md">
+                        <Lock className="size-4" />
+                      </div>
+                      <h3 className="font-display text-lg font-bold text-foreground">
+                        Houses 2–12 Destiny Blueprint Locked
+                      </h3>
+                      <p className="mt-1 text-xs text-muted-foreground max-w-sm">
+                        Unlock Dhana (Wealth), Karma (Career), Kalatra (Marriage), and Bhagyasthana (Destiny) houses.
+                      </p>
+                      <Button
+                        size="sm"
+                        onClick={() => setUnlockOpen(true)}
+                        className="mt-3.5 bg-[var(--gold)] text-black hover:bg-[var(--gold)]/90 font-semibold text-xs shadow-md"
+                      >
+                        <Sparkles className="size-3.5 mr-1" />
+                        Unlock All 12 Houses (₹1,499)
+                      </Button>
+                    </div>
                   </div>
-                ))}
-              </dl>
+                </div>
+              )}
             </section>
           )}
 

@@ -40,6 +40,31 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Update authenticated Supabase user metadata if available
+    try {
+      const { createServerSupabaseClient } = await import("@/lib/supabase/server");
+      const supabase = await createServerSupabaseClient();
+      const { data: { user } } = await supabase.auth.getUser();
+
+      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+
+      if (user && serviceKey && supabaseUrl) {
+        const { createClient } = await import("@supabase/supabase-js");
+        const adminSupabase = createClient(supabaseUrl, serviceKey);
+        await adminSupabase.auth.admin.updateUserById(user.id, {
+          user_metadata: {
+            ...user.user_metadata,
+            is_premium: true,
+            plan: "premium",
+            unlocked_at: new Date().toISOString(),
+          },
+        });
+      }
+    } catch (authErr) {
+      console.warn("Could not update Supabase user metadata:", authErr);
+    }
+
     return NextResponse.json({
       success: true,
       verified: true,
